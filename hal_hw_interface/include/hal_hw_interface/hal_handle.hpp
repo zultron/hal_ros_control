@@ -78,9 +78,9 @@ public:
     return **value_ptr_ptr_;
   }
 
-  std::string pin_name()
+  const std::string pin_name() const
   {
-    return name_ == "" ? interface_name_ : (name_ + '.' + interface_name_);
+    return name_.empty() ? interface_name_ : (name_ + '.' + interface_name_);
   }
 
   void alloc_and_init_hal_pin(std::string data_type)
@@ -112,7 +112,7 @@ protected:
   void _alloc_and_init_hal_pin()
   {
     hal_t** ptr = (reinterpret_cast<hal_t**>(hal_malloc(sizeof(hal_t*))));
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
       HAL_ROS_ERR_NAMED(CNAME, "Failed to allocate HAL pin %s",
                         pin_name().c_str());
