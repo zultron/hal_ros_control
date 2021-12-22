@@ -157,7 +157,7 @@ def generate_launch_description():
     declared_arguments.append(  # Changed for hal_rrbot_control demo
         DeclareLaunchArgument(
             "hardware_plugin",
-            default_value="hal_hw_interface/HalSystemInterface",
+            default_value="hal_system_interface/HalSystemInterface",
             description="ros2_control hardware plugin.",
         )
     )
@@ -271,7 +271,7 @@ def generate_launch_description():
         launch_arguments=dict(
             hal_file_dir=hal_file_dir,
             hal_files=hal_files,
-            node_param_file=robot_controllers,
+            robot_controllers_param_file=robot_controllers,
             robot_description=robot_description_content,
             hal_debug_output=hal_debug_output,
             hal_debug_level=hal_debug_level,
