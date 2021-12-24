@@ -29,6 +29,8 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
+#include <functional>   // std::ref
+
 #include <hal_hw_interface/hal_system_interface.hpp>
 #include <hal_hw_interface/hal_handle.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
@@ -61,16 +63,17 @@ HalSystemInterface::configure(const hardware_interface::HardwareInfo& info)
     // Initialize joint command interfaces
     for (const auto& interface : joint.command_interfaces)
     {
-      command_interfaces_.emplace_back(
-          hal_hardware_interface::HalCommandInterface(
-              joint.name, interface.name, interface.data_type, comp_id_));
+      auto intf = hal_hardware_interface::HalCommandInterface(
+        joint.name, interface.name, interface.data_type, comp_id_);
+      command_interfaces_.emplace_back(&intf);
     }
 
     // Initialize joint state interfaces
     for (const auto& interface : joint.state_interfaces)
     {
-      state_interfaces_.emplace_back(hal_hardware_interface::HalStateInterface(
-          joint.name, interface.name, interface.data_type, comp_id_));
+      auto intf = hal_hardware_interface::HalStateInterface(
+        joint.name, interface.name, interface.data_type, comp_id_);
+      state_interfaces_.emplace_back(&intf);
     }
   }
 
@@ -79,8 +82,9 @@ HalSystemInterface::configure(const hardware_interface::HardwareInfo& info)
   {
     for (const auto& interface : sensor.state_interfaces)
     {
-      state_interfaces_.emplace_back(hal_hardware_interface::HalStateInterface(
-          sensor.name, interface.name, interface.data_type, comp_id_));
+      auto intf = hal_hardware_interface::HalStateInterface(
+        sensor.name, interface.name, interface.data_type, comp_id_);
+      state_interfaces_.emplace_back(&intf);
     }
   }
 

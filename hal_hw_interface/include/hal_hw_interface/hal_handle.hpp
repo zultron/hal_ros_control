@@ -48,30 +48,30 @@
 
 namespace hal_hardware_interface
 {
-class HalReadOnlyHandle : public hardware_interface::ReadOnlyHandle
+class HalStateInterface : public hardware_interface::StateInterface
 {
 public:
-  HalReadOnlyHandle(const std::string& name, const std::string& interface_name,
+  HalStateInterface(const std::string& name, const std::string& interface_name,
                     const std::string& data_type, int comp_id)
-    : hardware_interface::ReadOnlyHandle(name, interface_name)
+    : hardware_interface::StateInterface(name, interface_name)
     , comp_id_(comp_id)
   {
     alloc_and_init_hal_pin(data_type);
   }
 
-  explicit HalReadOnlyHandle(const std::string& interface_name,
-                             const std::string data_type, int comp_id)
-    : hardware_interface::ReadOnlyHandle(interface_name), comp_id_(comp_id)
+  explicit HalStateInterface(const std::string& name,
+                             const char* interface_name,
+                             std::string data_type,
+                             int comp_id)
+    : hardware_interface::StateInterface(name, interface_name)
+    , comp_id_(comp_id)
   {
     alloc_and_init_hal_pin(data_type);
   }
 
-  explicit HalReadOnlyHandle(const char* interface_name, std::string data_type,
-                             int comp_id)
-    : hardware_interface::ReadOnlyHandle(interface_name), comp_id_(comp_id)
-  {
-    alloc_and_init_hal_pin(data_type);
-  }
+  HalStateInterface(const HalStateInterface & other) = default;
+
+  HalStateInterface(HalStateInterface && other) = default;
 
   /// Returns true if handle references a value.
   inline operator bool() const
@@ -163,30 +163,29 @@ protected:
   int comp_id_;
 };
 
-class HalReadWriteHandle : public HalReadOnlyHandle,
-                           public hardware_interface::ReadWriteHandle
+class HalCommandInterface : public HalStateInterface,
+                            public hardware_interface::CommandInterface
 {
 public:
-  HalReadWriteHandle(const std::string& name, const std::string& interface_name,
-                     const std::string& data_type, int comp_id)
-    : HalReadOnlyHandle(name, interface_name, data_type, comp_id)
-    , hardware_interface::ReadWriteHandle(name, interface_name)
+  HalCommandInterface(const std::string& name,
+                      const std::string& interface_name,
+                      const std::string& data_type, int comp_id)
+    : HalStateInterface(name, interface_name, data_type, comp_id)
+    , hardware_interface::CommandInterface(name, interface_name)
   {
   }
 
-  explicit HalReadWriteHandle(const std::string& interface_name,
-                              const std::string& data_type, int comp_id)
-    : HalReadOnlyHandle(interface_name, data_type, comp_id)
-    , hardware_interface::ReadWriteHandle(interface_name)
+  explicit HalCommandInterface(const std::string& name,
+                               const char* interface_name,
+                               const std::string& data_type, int comp_id)
+    : HalStateInterface(name, interface_name, data_type, comp_id)
+    , hardware_interface::CommandInterface(name, interface_name)
   {
   }
 
-  explicit HalReadWriteHandle(const char* interface_name,
-                              const std::string& data_type, int comp_id)
-    : HalReadOnlyHandle(interface_name, data_type, comp_id)
-    , hardware_interface::ReadWriteHandle(interface_name)
-  {
-  }
+  HalCommandInterface(const HalCommandInterface & other) = delete;
+
+  HalCommandInterface(HalCommandInterface && other) = default;
 
   void set_value(double value)
   {
@@ -197,31 +196,10 @@ public:
 
 protected:
   const hal_pin_dir_t pin_dir_ = HAL_OUT;
-};
 
-class HalStateInterface : public HalReadOnlyHandle,
-                          public hardware_interface::StateInterface
-{
-public:
-  HalStateInterface(const std::string& name, const std::string& interface_name,
-                    const std::string& data_type, int comp_id)
-    : HalReadOnlyHandle(name, interface_name, data_type, comp_id)
-    , hardware_interface::StateInterface(name, interface_name)
-  {
-  }
-};
-
-class HalCommandInterface : public HalReadWriteHandle,
-                            public hardware_interface::CommandInterface
-{
-public:
-  HalCommandInterface(const std::string& name,
-                      const std::string& interface_name,
-                      const std::string& data_type, int comp_id)
-    : HalReadWriteHandle(name, interface_name, data_type, comp_id)
-    , hardware_interface::CommandInterface(name, interface_name)
-  {
-  }
+  using HalStateInterface::HalStateInterface;
+  // using hardware_interface::CommandInterface;
+  // using ReadWriteHandle::ReadWriteHandle;  // FIXME What is it?
 };
 
 }  // namespace hal_hardware_interface
