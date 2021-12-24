@@ -132,8 +132,8 @@ protected:
   int comp_id_;
 
   // Interfaces
-  std::vector<hal_hardware_interface::HalCommandInterface> command_interfaces_;
-  std::vector<hal_hardware_interface::HalStateInterface> state_interfaces_;
+  std::vector<hardware_interface::CommandInterface> command_interfaces_;
+  std::vector<hardware_interface::StateInterface> state_interfaces_;
 };  // HalSystemInterface
 
 }  // namespace hal_system_interface

@@ -35,9 +35,17 @@
 #include <string>
 #include <unordered_map>
 
+// HAL
+#define RTAPI 1
+#include <hal.h>
+
+// ROS
 #include "hardware_interface/handle.hpp"
+
+// HAL hardware interface
 #include "hal_hw_interface/hal_def.hpp"
 #include "hal_hw_interface/hal_ros_logging.hpp"
+
 namespace hal_hardware_interface
 {
 class HalReadOnlyHandle : public hardware_interface::ReadOnlyHandle
@@ -83,6 +91,7 @@ public:
     return name_.empty() ? interface_name_ : (name_ + '.' + interface_name_);
   }
 
+protected:
   void alloc_and_init_hal_pin(std::string data_type)
   {
     const std::unordered_map<std::string, int> type_string_case_map{
@@ -107,7 +116,6 @@ public:
     }
   }
 
-protected:
   template <class hal_t>
   void alloc_and_init_hal_pin_typed()
   {

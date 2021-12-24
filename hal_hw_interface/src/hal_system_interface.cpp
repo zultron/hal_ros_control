@@ -89,6 +89,46 @@ HalSystemInterface::configure(const hardware_interface::HardwareInfo& info)
   return hardware_interface::return_type::OK;
 }  // configure()
 
+std::vector<hardware_interface::StateInterface>
+HalSystemInterface::export_state_interfaces()
+{
+  std::vector<hardware_interface::StateInterface> state_interfaces;
+  for (auto & intf : state_interfaces_)
+    state_interfaces.push_back(intf);
+  return state_interfaces;
+}
+
+std::vector<hardware_interface::CommandInterface>
+HalSystemInterface::export_command_interfaces()
+{
+  std::vector<hardware_interface::CommandInterface> command_interfaces;
+  for (auto & intf : command_interfaces_)
+    command_interfaces.push_back(intf);
+  return command_interfaces;
+}
+
+hardware_interface::return_type HalSystemInterface::read()
+{
+  return hardware_interface::return_type::OK;
+}
+
+hardware_interface::return_type HalSystemInterface::write()
+{
+  return hardware_interface::return_type::OK;
+}
+
+hardware_interface::return_type HalSystemInterface::start()
+{
+  HAL_ROS_INFO_NAMED(CNAME, "Starting HAL system interface");
+  return hardware_interface::return_type::OK;
+}
+
+hardware_interface::return_type HalSystemInterface::stop()
+{
+  HAL_ROS_INFO_NAMED(CNAME, "Stopping HAL system interface");
+  return hardware_interface::return_type::OK;
+}
+
 }  // namespace hal_system_interface
 
 #include "pluginlib/class_list_macros.hpp"
