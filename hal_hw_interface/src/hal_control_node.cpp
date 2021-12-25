@@ -30,6 +30,7 @@
 // SUCH DAMAGE.
 
 #include <stdlib.h>
+#include <pthread.h> // pthread_setname_np()
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
@@ -93,6 +94,7 @@ int rtapi_app_main(void)
 
   // Launch executor in asynch thread
   EXECUTOR_THREAD.reset(new std::thread([&executor]() { executor->spin(); }));
+  pthread_setname_np(EXECUTOR_THREAD->native_handle(), "ros2_ctl_mgr");
 
   // Export the function & mark component ready
   if (hal_export_functf(funct, nullptr, 1, 0, comp_id, "%s.funct", CNAME) < 0)
