@@ -53,11 +53,10 @@ std::string joint_intf_name(std::string joint_name, std::string intf_name, std::
 }
 
 hal_float_t** HalSystemInterface::alloc_and_init_hal_pin(
-  std::string joint_name, std::string interface_name, std::string suffix, hal_pin_dir_t pin_dir)
+  std::string base_name, std::string interface_name, std::string suffix, hal_pin_dir_t pin_dir)
 {
   std::string pin_name =
-    (joint_name.empty() ? interface_name : (joint_name + '.' + interface_name))
-    + suffix;
+    info_.name + '.' + base_name + '.' + interface_name + suffix;
 
   hal_float_t** ptr =
     (reinterpret_cast<hal_float_t**>(hal_malloc(sizeof(hal_float_t*))));

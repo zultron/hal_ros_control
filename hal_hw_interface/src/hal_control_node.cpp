@@ -30,6 +30,7 @@
 // SUCH DAMAGE.
 
 #include <stdlib.h>
+#include <pthread.h> // pthread_setname_np()
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
@@ -37,11 +38,9 @@
 #include <memory>
 #include <string>
 
-// Controller manager pointer
+// Controller manager node and executor pointers
 std::shared_ptr<controller_manager::ControllerManager> CONTROLLER_MANAGER;
-
-// ROS asynch executor thread pointer
-std::shared_ptr<std::thread> EXECUTOR_THREAD;
+std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> EXECUTOR;
 
 extern "C" {
 // Pre-declare the HAL function
@@ -86,13 +85,16 @@ int rtapi_app_main(void)
 
   // Init controller manager and asynch executor
   // - Resource manager & hardware interface loaded here; HAL pins initialized
-  auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
   std::string manager_node_name = "controller_manager";
   CONTROLLER_MANAGER.reset(
-      new controller_manager::ControllerManager(executor, manager_node_name));
+    new controller_manager::ControllerManager(EXECUTOR, manager_node_name));
+  EXECUTOR->add_node(CONTROLLER_MANAGER);
 
-  // Launch executor in asynch thread
-  EXECUTOR_THREAD.reset(new std::thread([&executor]() { executor->spin(); }));
+  // ROS asynch executor thread pointer
+  auto executor_cb = []() { EXECUTOR->spin(); };
+  auto executor_thread = new std::thread(executor_cb);
+  pthread_setname_np(executor_thread->native_handle(), "ros2_ctl_mgr");
 
   // Export the function & mark component ready
   if (hal_export_functf(funct, nullptr, 1, 0, comp_id, "%s.funct", CNAME) < 0)
@@ -122,7 +124,9 @@ void rtapi_app_exit(void)
 {
   rclcpp::Logger l = CONTROLLER_MANAGER->get_logger();
   HAL_ROS_INFO(l, "HAL controller manager shutting down");
-  EXECUTOR_THREAD->join();
+  EXECUTOR->cancel();
+  HAL_ROS_INFO(l, "Executor canceled");
+  rclcpp::shutdown();
 }
 
 }  // extern "C"
