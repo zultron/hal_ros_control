@@ -41,7 +41,7 @@
 
 // Controller manager node and executor pointers
 controller_manager::ControllerManager* CONTROLLER_MANAGER;
-std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> EXECUTOR;
+std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> EXECUTOR;
 
 extern "C" {
 // Pre-declare the HAL function
@@ -86,7 +86,7 @@ int rtapi_app_main(void)
 
   // Init controller manager and asynch executor
   // - Resource manager & hardware interface loaded here; HAL pins initialized
-  EXECUTOR.reset(new rclcpp::executors::SingleThreadedExecutor());
+  EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
   std::string manager_node_name = "controller_manager";
   CONTROLLER_MANAGER =
       new controller_manager::ControllerManager(EXECUTOR, manager_node_name);
@@ -95,6 +95,8 @@ int rtapi_app_main(void)
   // Related?
   // https://github.com/firesurfer/ros2_components/blob/master/src/ros2_components/ManagedNode.cpp#L200
   sleep(2);
+
+  // ROS asynch executor thread pointer
   auto executor_cb = []() { EXECUTOR->spin(); };
   auto EXECUTOR_THREAD = new std::thread(executor_cb);
   pthread_setname_np(EXECUTOR_THREAD->native_handle(), "ros2_ctl_mgr");
