@@ -1,5 +1,5 @@
 # 100Hz thread; add hal_hw_interface function
-newthread robot_hw_thread 10000000 fp
+newthread robot_hw_thread 1000000000 fp
 addf hal_control_node.funct robot_hw_thread
 
 # Connect position command to feedback via limit3 comp to simulate
