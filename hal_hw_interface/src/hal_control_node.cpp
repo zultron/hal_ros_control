@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <pthread.h> // pthread_setname_np()
+#include <unistd.h> // sleep()
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
@@ -90,7 +91,10 @@ int rtapi_app_main(void)
   CONTROLLER_MANAGER =
       new controller_manager::ControllerManager(EXECUTOR, manager_node_name);
 
-  // ROS asynch executor thread pointer
+  // Some race condition causes segfault; this seems to take care of it.
+  // Related?
+  // https://github.com/firesurfer/ros2_components/blob/master/src/ros2_components/ManagedNode.cpp#L200
+  sleep(2);
   auto executor_cb = []() { EXECUTOR->spin(); };
   auto EXECUTOR_THREAD = new std::thread(executor_cb);
   pthread_setname_np(EXECUTOR_THREAD->native_handle(), "ros2_ctl_mgr");
