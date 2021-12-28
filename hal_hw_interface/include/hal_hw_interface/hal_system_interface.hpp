@@ -55,7 +55,12 @@
 using CallbackReturn =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-typedef std::tuple<std::string, std::string, double**, double*> joint_intf_data_t;
+typedef struct {
+  std::string base_name;
+  std::string interface_name;
+  double** hal_pin_storage;
+  std::vector<double>::size_type handle_storage;
+} intf_data_t;
 
 namespace hal_system_interface
 {
@@ -148,8 +153,8 @@ protected:
 
   // Interface data
   std::vector<double> storage_;
-  std::unordered_map<std::string, joint_intf_data_t> command_intf_data_map_;
-  std::unordered_map<std::string, joint_intf_data_t> state_intf_data_map_;
+  std::unordered_map<std::string, intf_data_t> command_intf_data_map_;
+  std::unordered_map<std::string, intf_data_t> state_intf_data_map_;
 };  // HalSystemInterface
 
 }  // namespace hal_system_interface

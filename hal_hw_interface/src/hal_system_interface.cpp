@@ -83,22 +83,34 @@ void HalSystemInterface::init_command_interface(
   std::string joint_name, std::string interface_name, std::string data_type)
 {
   assert(data_type == "double");
-  hal_float_t** ptr;
-  ptr = alloc_and_init_hal_pin(joint_name, interface_name, "_cmd", HAL_OUT);
   auto name = joint_intf_name(joint_name, interface_name, "_cmd");
   storage_.push_back(0);
-  command_intf_data_map_[name] = joint_intf_data_t(joint_name, interface_name, ptr, &storage_.back());
+  double** hal_pin_storage = alloc_and_init_hal_pin(
+    joint_name, interface_name, "_cmd", HAL_OUT);
+  std::vector<double>::size_type handle_storage = storage_.size()-1;
+  command_intf_data_map_[name] = {
+    .base_name=joint_name,
+    .interface_name=interface_name,
+    .hal_pin_storage=hal_pin_storage,
+    .handle_storage=handle_storage
+  };
 }
 
 void HalSystemInterface::init_state_interface(
   std::string joint_name, std::string interface_name, std::string data_type)
 {
   assert(data_type == "double");
-  hal_float_t** ptr;
-  ptr = alloc_and_init_hal_pin(joint_name, interface_name, "_fb", HAL_IN);
   auto name = joint_intf_name(joint_name, interface_name, "_fb");
   storage_.push_back(0);
-  state_intf_data_map_[name] = joint_intf_data_t(joint_name, interface_name, ptr, &storage_.back());
+  double** hal_pin_storage = alloc_and_init_hal_pin(
+    joint_name, interface_name, "_fb", HAL_IN);
+  std::vector<double>::size_type handle_storage = storage_.size()-1;
+  state_intf_data_map_[name] = {
+    .base_name=joint_name,
+    .interface_name=interface_name,
+    .hal_pin_storage=hal_pin_storage,
+    .handle_storage=handle_storage
+  };
 }
 
 hardware_interface::return_type
@@ -148,42 +160,62 @@ HalSystemInterface::configure(const hardware_interface::HardwareInfo& info)
 std::vector<hardware_interface::StateInterface>
 HalSystemInterface::export_state_interfaces()
 {
-  std::vector<hardware_interface::StateInterface> state_interfaces;
-  for (const auto & [ name, joint_intf_data ] : state_intf_data_map_)
-    state_interfaces.emplace_back(
-      std::get<0>(joint_intf_data),
-      std::get<1>(joint_intf_data),
-      std::get<3>(joint_intf_data));
   HAL_ROS_INFO_NAMED(LOG_NAME, "Exporting state interfaces");
-  return state_interfaces;
+  std::vector<hardware_interface::StateInterface> interfaces;
+  for (const auto & [ name, intf_data ] : state_intf_data_map_)
+    interfaces.emplace_back(
+      intf_data.base_name,
+      intf_data.interface_name,
+      &storage_.at(intf_data.handle_storage));
+  return interfaces;
 }
 
 std::vector<hardware_interface::CommandInterface>
 HalSystemInterface::export_command_interfaces()
 {
-  std::vector<hardware_interface::CommandInterface> command_interfaces;
-  for (const auto & [ name, joint_intf_data ] : command_intf_data_map_)
-    command_interfaces.emplace_back(
-      std::get<0>(joint_intf_data),
-      std::get<1>(joint_intf_data),
-      std::get<3>(joint_intf_data));
   HAL_ROS_INFO_NAMED(LOG_NAME, "Exporting command interfaces");
-  return command_interfaces;
+  std::vector<hardware_interface::CommandInterface> interfaces;
+  for (const auto & [ name, intf_data ] : command_intf_data_map_)
+    interfaces.emplace_back(
+      intf_data.base_name,
+      intf_data.interface_name,
+      &storage_.at(intf_data.handle_storage));
+  return interfaces;
 }
 
 hardware_interface::return_type HalSystemInterface::read()
 {
-  for (const auto & [ name, joint_intf_data ] : state_intf_data_map_)
-    // Copy from HAL pin to handle
-    **std::get<2>(joint_intf_data) = *std::get<3>(joint_intf_data);
+  for (const auto & [ name, intf_data ] : state_intf_data_map_)
+  {
+    // Copy to handle from HAL pin
+    storage_.at(intf_data.handle_storage) = **intf_data.hal_pin_storage;
+    HAL_ROS_INFO_NAMED(LOG_NAME, "read():  %s.%s_fb:  handle@%zu=%.4f; pin@%p@%p=%.4f",
+                       intf_data.base_name.c_str(),
+                       intf_data.interface_name.c_str(),
+                       intf_data.handle_storage,
+                       storage_.at(intf_data.handle_storage),
+                       intf_data.hal_pin_storage,
+                       *intf_data.hal_pin_storage,
+                       **intf_data.hal_pin_storage);
+  }
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type HalSystemInterface::write()
 {
-  for (const auto & [ name, joint_intf_data ] : state_intf_data_map_)
-    // Copy from handle to HAL pin
-    *std::get<3>(joint_intf_data) = **std::get<2>(joint_intf_data);
+  for (const auto & [ name, intf_data ] : command_intf_data_map_)
+  {
+    // Copy to HAL pin from handle
+    **intf_data.hal_pin_storage = storage_.at(intf_data.handle_storage);
+    HAL_ROS_INFO_NAMED(LOG_NAME, "write():  %s.%s_cmd:  handle@%zu=%.4f; pin@%p@%p=%.4f",
+                       intf_data.base_name.c_str(),
+                       intf_data.interface_name.c_str(),
+                       intf_data.handle_storage,
+                       storage_.at(intf_data.handle_storage),
+                       intf_data.hal_pin_storage,
+                       *intf_data.hal_pin_storage,
+                       **intf_data.hal_pin_storage);
+  }
   return hardware_interface::return_type::OK;
 }
 
