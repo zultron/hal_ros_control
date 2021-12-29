@@ -40,7 +40,7 @@
 #include <string>
 
 // Controller manager node and executor pointers
-controller_manager::ControllerManager* CONTROLLER_MANAGER;
+std::shared_ptr<controller_manager::ControllerManager> CONTROLLER_MANAGER;
 std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> EXECUTOR;
 
 extern "C" {
@@ -88,8 +88,9 @@ int rtapi_app_main(void)
   // - Resource manager & hardware interface loaded here; HAL pins initialized
   EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
   std::string manager_node_name = "controller_manager";
-  CONTROLLER_MANAGER =
-      new controller_manager::ControllerManager(EXECUTOR, manager_node_name);
+  CONTROLLER_MANAGER.reset(
+    new controller_manager::ControllerManager(EXECUTOR, manager_node_name));
+  EXECUTOR->add_node(CONTROLLER_MANAGER);
 
   // Some race condition causes segfault; this seems to take care of it.
   // Related?
