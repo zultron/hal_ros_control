@@ -30,8 +30,8 @@
 // SUCH DAMAGE.
 
 #include <stdlib.h>
-#include <pthread.h> // pthread_setname_np()
-#include <unistd.h> // sleep()
+#include <pthread.h>  // pthread_setname_np()
+#include <unistd.h>   // sleep()
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
@@ -48,12 +48,13 @@ extern "C" {
 void funct(void* arg, int64_t period);
 
 #define MAX_ARGS 255
-static char *argv[MAX_ARGS] = {0,};
+static char* argv[MAX_ARGS] = {
+  0,
+};
 RTAPI_MP_ARRAY_STRING(argv, MAX_ARGS, "ROS command-line argv");
 
 int rtapi_app_main(void)
 {
-
   // Init HAL component
   int comp_id = hal_init(CNAME);
   if (comp_id < 0)
@@ -79,7 +80,8 @@ int rtapi_app_main(void)
   auto init_opts = rclcpp::InitOptions();
   init_opts.shutdown_on_sigint = false;
   int argc;
-  for (argc=0; argv[argc] != nullptr; argc++) {
+  for (argc = 0; argv[argc] != nullptr; argc++)
+  {
     HAL_ROS_DBG_NAMED(CNAME, "  ROS args:  %d = '%s'", argc, argv[argc]);
   }
   rclcpp::init(argc, argv, init_opts);
@@ -89,7 +91,7 @@ int rtapi_app_main(void)
   EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
   std::string manager_node_name = "controller_manager";
   CONTROLLER_MANAGER.reset(
-    new controller_manager::ControllerManager(EXECUTOR, manager_node_name));
+      new controller_manager::ControllerManager(EXECUTOR, manager_node_name));
   EXECUTOR->add_node(CONTROLLER_MANAGER);
 
   // Some race condition causes segfault; this seems to take care of it.
