@@ -55,7 +55,8 @@
 using CallbackReturn =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-typedef struct {
+typedef struct
+{
   std::string base_name;
   std::string interface_name;
   double** hal_pin_storage;
@@ -139,12 +140,16 @@ public:
   hardware_interface::return_type write() override;
 
 protected:
-  hal_float_t** alloc_and_init_hal_pin(
-    std::string /*joint_name*/, std::string /*interface_name*/, std::string /*suffix*/, hal_pin_dir_t /*pin_dir*/);
-  void init_command_interface(
-    std::string /*joint_name*/, std::string /*interface_name*/, std::string /*data_type*/);
-  void init_state_interface(
-    std::string /*joint_name*/, std::string /*interface_name*/, std::string /*data_type*/);
+  hal_float_t** alloc_and_init_hal_pin(std::string /*joint_name*/,
+                                       std::string /*interface_name*/,
+                                       std::string /*suffix*/,
+                                       hal_pin_dir_t /*pin_dir*/);
+  void init_command_interface(std::string /*joint_name*/,
+                              std::string /*interface_name*/,
+                              std::string /*data_type*/);
+  void init_state_interface(std::string /*joint_name*/,
+                            std::string /*interface_name*/,
+                            std::string /*data_type*/);
 
   /**
    * \brief HAL component ID
