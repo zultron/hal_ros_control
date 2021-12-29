@@ -39,3 +39,10 @@ cat >$UPSTREAM_ROSDEP_YML <<-EOF
 echo "yaml file://$UPSTREAM_ROSDEP_YML" > \
     /etc/ros/rosdep/sources.list.d/10-local.list
 rosdep update
+
+# - Avoid broken Machinekit versions
+cat >/etc/apt/preferences.d/10broken-machinekit <<-EOF
+	Package: machinekit-hal
+	Pin: version 0.4.*
+	Pin-Priority: 550
+	EOF
