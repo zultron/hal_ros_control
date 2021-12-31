@@ -20,8 +20,10 @@ install_cloudsmith_repo() {
 }
 
 source /etc/os-release
-install_cloudsmith_repo machinekit machinekit-hal D35981AB4276AC36
-install_cloudsmith_repo machinekit machinekit A9B6D8B4BD8321F3
+# FIXME Machinekit repos currently broken; use Zultron's "stable" repo
+# install_cloudsmith_repo machinekit machinekit-hal D35981AB4276AC36
+# install_cloudsmith_repo machinekit machinekit A9B6D8B4BD8321F3
+install_cloudsmith_repo zultron machinekit EB6FA9FCFA405632
 apt-get update
 
 # Add Machinekit rosdep keys
@@ -39,10 +41,3 @@ cat >$UPSTREAM_ROSDEP_YML <<-EOF
 echo "yaml file://$UPSTREAM_ROSDEP_YML" > \
     /etc/ros/rosdep/sources.list.d/10-local.list
 rosdep update
-
-# - Avoid broken Machinekit versions
-cat >/etc/apt/preferences.d/10broken-machinekit <<-EOF
-	Package: machinekit-hal
-	Pin: version 0.4.*
-	Pin-Priority: 550
-	EOF
