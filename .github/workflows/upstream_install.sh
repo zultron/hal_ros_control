@@ -22,8 +22,9 @@ install_cloudsmith_repo() {
 source /etc/os-release
 # FIXME Machinekit repos currently broken; use Zultron's "stable" repo
 # install_cloudsmith_repo machinekit machinekit-hal D35981AB4276AC36
-# install_cloudsmith_repo machinekit machinekit A9B6D8B4BD8321F3
 install_cloudsmith_repo zultron machinekit EB6FA9FCFA405632
+# Support packages
+install_cloudsmith_repo machinekit machinekit A9B6D8B4BD8321F3
 apt-get update
 
 # Add Machinekit rosdep keys
