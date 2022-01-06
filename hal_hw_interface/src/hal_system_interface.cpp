@@ -53,8 +53,8 @@ static inline std::string joint_intf_name(std::string joint_name,
 }
 
 hal_float_t** HalSystemInterface::alloc_and_init_hal_pin(
-    const std::string base_name, const std::string interface_name, const std::string suffix,
-    const hal_pin_dir_t pin_dir)
+    const std::string base_name, const std::string interface_name,
+    const std::string suffix, const hal_pin_dir_t pin_dir)
 {
   std::string pin_name =
       info_.name + '.' + base_name + '.' + interface_name + suffix;
@@ -78,12 +78,13 @@ hal_float_t** HalSystemInterface::alloc_and_init_hal_pin(
   return ptr;
 }
 
-void HalSystemInterface::init_command_interface(const std::string joint_name,
-                                                const std::string interface_name,
-                                                const std::string data_type
-                                                __attribute__((unused)))
+void HalSystemInterface::init_command_interface(
+    const std::string joint_name, const std::string interface_name,
+    const std::string data_type)
 {
-  assert(data_type == "double");
+  if (data_type != "double")
+    throw std::runtime_error("Interface " + joint_name + " " + interface_name +
+                             " type  " + data_type + ", expected 'double'");
   auto name = joint_intf_name(joint_name, interface_name, "_cmd");
   double** hal_pin_storage =
       alloc_and_init_hal_pin(joint_name, interface_name, "_cmd", HAL_OUT);
@@ -95,10 +96,11 @@ void HalSystemInterface::init_command_interface(const std::string joint_name,
 
 void HalSystemInterface::init_state_interface(const std::string joint_name,
                                               const std::string interface_name,
-                                              const std::string data_type
-                                              __attribute__((unused)))
+                                              const std::string data_type)
 {
-  assert(data_type == "double");
+  if (data_type != "double")
+    throw std::runtime_error("Interface " + joint_name + " " + interface_name +
+                             " type  " + data_type + ", expected 'double'");
   auto name = joint_intf_name(joint_name, interface_name, "_fb");
   double** hal_pin_storage =
       alloc_and_init_hal_pin(joint_name, interface_name, "_fb", HAL_IN);
