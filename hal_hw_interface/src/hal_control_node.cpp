@@ -29,19 +29,27 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
+#define RTAPI 1
+
 #include <stdlib.h>
 #include <pthread.h>  // pthread_setname_np()
 #include <unistd.h>   // sleep()
+#include <hal.h>      // HAL public API decls
+#include <assert.h>   // assert
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
+#include <controller_manager_msgs/srv/switch_controller.hpp>
+#include <rclcpp/duration.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
 #include <hal_hw_interface/hal_def.hpp>
 #include <memory>
 #include <string>
+#include <vector>
 
 // Controller manager node and executor pointers
 std::shared_ptr<controller_manager::ControllerManager> CONTROLLER_MANAGER;
 std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> EXECUTOR;
+hal_bit_t** RESET_PIN_PTR;
 
 extern "C" {
 // Pre-declare the HAL function
@@ -94,6 +102,13 @@ int rtapi_app_main(void)
       new controller_manager::ControllerManager(EXECUTOR, manager_node_name));
   EXECUTOR->add_node(CONTROLLER_MANAGER);
 
+  // Set up reset HAL pin
+  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
+  assert(RESET_PIN_PTR != nullptr);
+  assert(!hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.%s", CNAME,
+                           "reset"));
+  assert(*RESET_PIN_PTR != nullptr);
+
   // Some race condition causes segfault; this seems to take care of it.
   // Related?
   // https://github.com/firesurfer/ros2_components/blob/master/src/ros2_components/ManagedNode.cpp#L200
@@ -123,6 +138,22 @@ int rtapi_app_main(void)
 
 void funct([[maybe_unused]] void* arg, [[maybe_unused]] int64_t period)
 {
+  if (**RESET_PIN_PTR)
+  {
+    // reset pin went high; reset command to feedback by stopping and starting
+    // all loaded controllers during update()
+    **RESET_PIN_PTR = 0;  // clear reset pin
+    std::vector<std::string> controllers;
+    for (const auto& controller : CONTROLLER_MANAGER->get_loaded_controllers())
+      controllers.push_back(controller.info.name);
+    CONTROLLER_MANAGER->switch_controller(
+        controllers, controllers,  // start/stop_controllers
+        controller_manager_msgs::srv::SwitchController::Request::BEST_EFFORT,
+        true,  // start_asap
+        rclcpp::Duration((int32_t)(period >> 32),
+                         (uint32_t)(period))  // timeout
+    );
+  }
   CONTROLLER_MANAGER->read();
   CONTROLLER_MANAGER->update();
   CONTROLLER_MANAGER->write();
