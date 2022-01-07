@@ -78,6 +78,7 @@ class HalMgr(RosHalComponent):
             p: self.get_ros_param(p)
             for p in self.node.get_parameters_by_prefix("")
         }
+        params["argv"] = self.argv
         for hal_file in hal_files:
             hal_file_path = os.path.join(hal_file_dir, hal_file)
             self.logger.info(f"Loading HAL file '{hal_file_path}'")
