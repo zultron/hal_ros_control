@@ -53,7 +53,7 @@ class HalIO(RosHalComponent):
         config_file = self.argv[0]
         self.logger.info(f"Reading config file '{config_file}'")
         assert os.path.exists(config_file)
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             self.config = yaml.safe_load(f)
 
     def setup_component(self):

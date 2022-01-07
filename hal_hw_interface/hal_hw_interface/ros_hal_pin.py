@@ -174,7 +174,7 @@ class RosHalPinPublisher(RosHalPin):
     # Attribute default factories
     @pub_topic.default
     def _pub_topic_default(self):
-        return "{}/{}".format(self.compname, self.pin_name)
+        return self.pin_name
 
     _pin_to_msg_type_map = {
         HalPinType("BIT"): Bool,
@@ -266,7 +266,7 @@ class RosHalPinSubscriber(RosHalPinPublisher):
         self._ros_subscriber_init()
 
     def _ros_subscriber_init(self):
-        self.logger.info('Creating subscriber on topic "{self.sub_topic}"')
+        self.logger.info(f'Creating subscriber on topic "{self.sub_topic}"')
         self.sub = self.node.create_subscription(
             self.msg_type, self.sub_topic, self._subscriber_cb
         )
