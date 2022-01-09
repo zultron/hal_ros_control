@@ -54,6 +54,12 @@ def generate_launch_description():
     )
     declared_arguments.append(
         DeclareLaunchArgument(
+            "hal_mgr_param_file",
+            description="YAML file with the hal_mgr configuration.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "hal_file_dir",
             default_value=PathJoinSubstitution(
                 [FindPackageShare("hal_rrbot_control"), "halfiles"]
@@ -188,6 +194,7 @@ def generate_launch_description():
     # Initialize Arguments
     runtime_config_package = LaunchConfiguration("runtime_config_package")
     controllers_file = LaunchConfiguration("controllers_file")
+    hal_mgr_param_file = LaunchConfiguration("hal_mgr_param_file")
     description_package = LaunchConfiguration("description_package")
     description_file = LaunchConfiguration("description_file")
     prefix = LaunchConfiguration("prefix")
@@ -271,6 +278,7 @@ def generate_launch_description():
         launch_arguments=dict(
             hal_file_dir=hal_file_dir,
             hal_files=hal_files,
+            hal_mgr_param_file=hal_mgr_param_file,
             robot_controllers_param_file=robot_controllers,
             robot_description=robot_description_content,
             hal_debug_output=hal_debug_output,
