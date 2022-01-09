@@ -30,6 +30,10 @@ def generate_launch_description():
             description="Robot controller configuration param file.",
         ),
         DeclareLaunchArgument(
+            "hal_mgr_param_file",
+            description="hal_mgr param file.",
+        ),
+        DeclareLaunchArgument(
             "hal_debug_output",
             default_value="false",
             description="Output HAL debug messages to screen (console).",
@@ -57,6 +61,8 @@ def generate_launch_description():
                 "hal_hw_interface.yaml",
             ]
         ),
+        # hal_mgr yaml from launch params
+        LaunchConfiguration("hal_mgr_param_file"),
         # Robot controllers yaml from launch params
         LaunchConfiguration("robot_controllers_param_file"),
     ]
