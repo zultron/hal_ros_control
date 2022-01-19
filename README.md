@@ -83,6 +83,8 @@ Run the simulated hardware interface:
 
     ros2 launch hal_rrbot_control rrbot.launch.py
     # Debugging: append `hal_debug_output:=1 hal_debug_level:=5`
+    # Trajectory controller:  append
+    #     `robot_controller:=position_trajectory_controller`
 
 Run `halscope` to visualize HAL joint commands and feedback; in the
 GUI, set the "Run Mode" to "Roll" for continuous updating:
@@ -93,7 +95,15 @@ The simulated trajectories are launched directly from the
 `ros2_control_demo_bringup` package:
 
     ros2 launch ros2_control_demo_bringup test_forward_position_controller.launch.py
+    # Or for robot_controller:=position_trajectory_controller:
     ros2 launch ros2_control_demo_bringup test_joint_trajectory_controller.launch.py
+
+Switch to trajectory controller at run time:
+
+    ros2 service call \
+        /controller_manager/load_and_start_controller \
+        controller_manager_msgs/srv/LoadStartController \
+        '{name: "forward_position_controller"}'
 
 -----
 ## Configuration
