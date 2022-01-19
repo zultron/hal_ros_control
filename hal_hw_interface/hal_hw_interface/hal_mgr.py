@@ -64,6 +64,7 @@ class HalMgr(RosHalComponent):
         assert hal_comp_dir is not None
         hal_hw_interface_path = os.path.join(hal_comp_dir, "hal_control_node")
         self.logger.info(f"hal_hw_interface_path:  {hal_hw_interface_path}")
+        self.logger.info(f"hal_hw_interface_args:  {str(self.argv)}")
         rtapi.loadrt(hal_hw_interface_path, ARGV=",".join(self.argv))
         self.logger.info("rosctl_intf comp loaded successfully")
 
