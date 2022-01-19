@@ -37,7 +37,7 @@ class HalObjBase:
         :returns: HAL component object
         :rtype: :py:class:`hal.component`
         """
-        assert "hal_comp" in self._cached_objs
+        assert "hal_comp" in self._cached_objs, "`init_hal_comp` not called"
         return self._cached_objs["hal_comp"]
 
     # A `dict` of keyword args to pass to `rclpy.create_node`
@@ -63,7 +63,7 @@ class HalObjBase:
         :param node_kwargs:  Keyword args to `rclpy.create_node`
         :type node_kwargs:  dict
         """
-        assert self.compname is not None
+        assert self.compname is not None, "`compname` not set"
         co = self._cached_objs
         ctx = co["node_context"] = rclpy.utilities.get_default_context()
         assert "node" not in self._cached_objs, "`init_ros_node` already called"
@@ -87,7 +87,7 @@ class HalObjBase:
         :returns: ROS node object
         :rtype: :py:class:`rclpy.node.Node`
         """
-        assert "node" in self._cached_objs
+        assert "node" in self._cached_objs, "`init_ros_node` not called"
         return self._cached_objs["node"]
 
     @property
@@ -103,7 +103,7 @@ class HalObjBase:
         :returns: ROS node context object
         :rtype: :py:class:`rclpy.context.Context`
         """
-        assert "node_context" in self._cached_objs
+        assert "node_context" in self._cached_objs, "`init_ros_node` not called"
         return self._cached_objs["node_context"]
 
     def get_ros_param(self, name, default=None):
@@ -147,7 +147,7 @@ class HalObjBase:
         :param prio: Priority, default 500
         :type prio: int
         """
-        assert callable(cb)
+        assert callable(cb), "shutdown callback must be callable"
         shutdown_cbs = self._cached_objs.setdefault("shutdown_cbs", {})
         while prio in shutdown_cbs:
             prio += 0.1
