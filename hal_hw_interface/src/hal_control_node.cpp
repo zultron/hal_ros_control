@@ -40,6 +40,7 @@
 #include <controller_manager/controller_manager.hpp>
 #include <controller_manager_msgs/srv/switch_controller.hpp>
 #include <rclcpp/duration.hpp>
+#include <lifecycle_msgs/msg/state.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
 #include <hal_hw_interface/hal_def.hpp>
 #include <memory>
@@ -145,11 +146,16 @@ void funct([[maybe_unused]] void* arg, [[maybe_unused]] int64_t period)
     // reset pin went high; reset command to feedback by stopping and starting
     // all loaded controllers during update()
     **RESET_PIN_PTR = 0;  // clear reset pin
-    std::vector<std::string> controllers;
+    std::vector<std::string> start_controllers, stop_controllers;
     for (const auto& controller : CONTROLLER_MANAGER->get_loaded_controllers())
-      controllers.push_back(controller.info.name);
+      if (controller.c->get_current_state().id() ==
+          lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+      {
+        start_controllers.push_back(controller.info.name);
+        stop_controllers.push_back(controller.info.name);
+      }
     CONTROLLER_MANAGER->switch_controller(
-        controllers, controllers,  // start/stop_controllers
+        start_controllers, stop_controllers,
         controller_manager_msgs::srv::SwitchController::Request::BEST_EFFORT,
         true,  // start_asap
         rclcpp::Duration((int32_t)(period >> 32),
