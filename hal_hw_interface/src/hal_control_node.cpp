@@ -156,6 +156,13 @@ int rtapi_app_main(void)
     );
   EXECUTOR->add_node(CONTROLLER_MANAGER);
 
+  // Set up reset HAL pin
+  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
+  assert(RESET_PIN_PTR != nullptr);
+  assert(!hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.%s", CNAME,
+                           "reset"));
+  assert(*RESET_PIN_PTR != nullptr);
+
   // Some race condition causes segfault; this seems to take care of it.
   // Related?
   // https://github.com/firesurfer/ros2_components/blob/master/src/ros2_components/ManagedNode.cpp#L200
@@ -165,15 +172,6 @@ int rtapi_app_main(void)
   auto executor_cb = []() { EXECUTOR->spin(); };
   auto executor_thread = new std::thread(executor_cb);
   pthread_setname_np(executor_thread->native_handle(), "ros2_ctl_mgr");
-
-  // Set up reset HAL pin
-  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
-  assert(RESET_PIN_PTR != nullptr);
-  int res = hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.%s", CNAME,
-                             "reset");
-  assert(res == 0);
-  assert(*RESET_PIN_PTR != nullptr);
-  HAL_ROS_INFO_NAMED(CNAME, "Created reset pin");
 
   // Export the function & mark component ready
   if (hal_export_functf(funct, nullptr, 1, 0, comp_id, "%s.funct", CNAME) < 0)
