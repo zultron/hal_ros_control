@@ -137,13 +137,6 @@ int rtapi_app_main(void)
   rclcpp::init(argc, ARGV, init_opts);
 
 
-  // Reset HAL pin
-  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
-  assert(RESET_PIN_PTR != nullptr);
-  assert(!hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.%s", CNAME,
-                           "reset"));
-  assert(*RESET_PIN_PTR != nullptr);
-
   // Init controller manager and asynch executor
   // - Resource manager & hardware interface loaded here; HAL pins initialized
   EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
