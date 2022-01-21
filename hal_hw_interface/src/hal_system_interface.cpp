@@ -80,10 +80,11 @@ hal_float_t** HalSystemInterface::alloc_and_init_hal_pin(
 
 void HalSystemInterface::init_command_interface(std::string joint_name,
                                                 std::string interface_name,
-                                                std::string data_type
-                                                __attribute__((unused)))
+                                                std::string data_type)
 {
-  assert(data_type == "double");
+  if (data_type != "double")
+    throw std::runtime_error(
+      "Interface " + joint_name + " " + interface_name + " type  " + data_type + ", expected 'double'");
   auto name = joint_intf_name(joint_name, interface_name, "_cmd");
   storage_.push_back(0);
   double** hal_pin_storage =
@@ -97,10 +98,11 @@ void HalSystemInterface::init_command_interface(std::string joint_name,
 
 void HalSystemInterface::init_state_interface(std::string joint_name,
                                               std::string interface_name,
-                                              std::string data_type
-                                              __attribute__((unused)))
+                                              std::string data_type)
 {
-  assert(data_type == "double");
+  if (data_type != "double")
+    throw std::runtime_error(
+      "Interface " + joint_name + " " + interface_name + " type  " + data_type + ", expected 'double'");
   auto name = joint_intf_name(joint_name, interface_name, "_fb");
   storage_.push_back(0);
   double** hal_pin_storage =

@@ -35,11 +35,11 @@
 #include <pthread.h>  // pthread_setname_np()
 #include <unistd.h>   // sleep()
 #include <hal.h>      // HAL public API decls
-#include <assert.h>   // assert
 #include <rclcpp/rclcpp.hpp>
 #include <controller_manager/controller_manager.hpp>
 #include <controller_manager_msgs/srv/switch_controller.hpp>
 #include <rclcpp/duration.hpp>
+#include <hardware_interface/macros.hpp>  // THROW_ON_NULLPTR
 #include <lifecycle_msgs/msg/state.hpp>
 #include <hal_hw_interface/hal_ros_logging.hpp>
 #include <hal_hw_interface/hal_def.hpp>
@@ -74,6 +74,8 @@ RTAPI_MP_ARRAY_STRING(ARGV, MAX_ARGS, "ROS command-line argv");
 // pin).
 void reset_controller_cb(void)
 {
+  THROW_ON_NULLPTR(RESET_PIN_PTR);
+  THROW_ON_NULLPTR(*RESET_PIN_PTR);
   if (! **RESET_PIN_PTR)
     return;
 
@@ -136,6 +138,13 @@ int rtapi_app_main(void)
   }
   rclcpp::init(argc, ARGV, init_opts);
 
+  // Set up reset HAL pin
+  HAL_ROS_DBG_NAMED(CNAME, "Initializing %s.reset HAL pin", CNAME);
+  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
+  THROW_ON_NULLPTR(RESET_PIN_PTR);
+  if (hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.reset", CNAME))
+    throw std::runtime_error("Failed to init " + std::string(CNAME) + ".reset HAL pin");
+  THROW_ON_NULLPTR(*RESET_PIN_PTR);
 
   // Init controller manager and asynch executor
   // - Resource manager & hardware interface loaded here; HAL pins initialized
@@ -148,13 +157,6 @@ int rtapi_app_main(void)
     std::chrono::milliseconds(10), reset_controller_cb
     );
   EXECUTOR->add_node(CONTROLLER_MANAGER);
-
-  // Set up reset HAL pin
-  RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
-  assert(RESET_PIN_PTR != nullptr);
-  assert(!hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.%s", CNAME,
-                           "reset"));
-  assert(*RESET_PIN_PTR != nullptr);
 
   // Some race condition causes segfault; this seems to take care of it.
   // Related?
