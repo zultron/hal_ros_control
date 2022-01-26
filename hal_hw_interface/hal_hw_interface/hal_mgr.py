@@ -41,12 +41,21 @@ class HalMgr(RosHalComponent):
         Start Machinekit `realtime` environment.  Register the
         :py:func:`stop_realtime` shutdown callback.
         """
-        os.environ.setdefault("DEBUG", "0")
-        if "MACHINEKIT_INI" not in os.environ:  # export for package installs
-            mkconfig = config.Config()
-            os.environ["MACHINEKIT_INI"] = mkconfig.MACHINEKIT_INI
-        subprocess.check_call("realtime start", shell=True)
+        # Set up console debug output and config
+        d_out = "1" if self.get_ros_param("hal_debug_output", True) else "0"
+        d_lev = str(self.get_ros_param("hal_debug_level", 1))
+        self.logger.info(f"Starting hal_mgr; debug={d_out}/level={d_lev}")
+        env = dict(
+            DEBUG=d_lev,
+            SYSLOG_TO_STDERR=d_out,
+            MACHINEKIT_INI=config.Config().MACHINEKIT_INI,
+            **os.environ,
+        )
+        subprocess.check_call(["realtime", "start"], env=env)
         self.add_shutdown_callback(self.stop_realtime, 999)  # run last
+
+        # Signal readiness
+        self.publish_ready_topic(value=True)
         self.logger.info("hal_mgr:  Started realtime")
 
     def stop_realtime(self):
@@ -92,23 +101,23 @@ class HalMgr(RosHalComponent):
             else:
                 subprocess.check_call(["halcmd", "-f", hal_file_path])
 
-        # Signal readiness
-        self.publish_ready_topic(value=True)
         self.logger.info("HAL configuration loaded")
 
     def update(self):
+        # FIXME Watch realtime; shut down if it shuts down
         self.publish_ready_topic()
 
     def publish_ready_topic(self, value=None):
         """
         Publish the HAL config "ready" status.
 
-        This topic coming `True` indicates the HAL configuration is
-        complete.
+        This topic coming `True` indicates RTAPI/HAL is running.
 
         Change published value by setting the `value` param to `True`
         or `False.
         """
         if value is not None:
+            if self.ready_msg.data != value:
+                self.logger.info(f"hal_mgr/ready topic new value:  {value}")
             self.ready_msg.data = value
         self.ready_pub.publish(self.ready_msg)
