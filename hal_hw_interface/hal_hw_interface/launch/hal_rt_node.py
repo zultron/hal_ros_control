@@ -3,39 +3,16 @@ from typing import List, Dict, Optional, Union
 from launch import SomeSubstitutionsType, logging
 from launch.utilities import perform_substitutions
 from launch.action import Action
-from launch.actions import RegisterEventHandler
-from launch.event_handler import EventHandler
 from launch.launch_context import LaunchContext
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackagePrefix
 from launch_ros.actions.node import Node
 
 from machinekit import rtapi
-from .hal_ready_event import HalReady
+from .hal_mgr import HalOrderedAction
 
 
-class HalRTNode(RegisterEventHandler):
-    """
-    Action that loads a HAL RT component when HAL is running.
-
-    This action takes the same args as
-    :class:`hal_hw_interface.launch.hal_rt_node.HalRTNodeAction`.
-    Intended to run with the
-    :class:`hal_hw_interface.launch.hal_mgr.HalMgr` action, it
-    executes the `HalRTNodeAction` when the `HalMgr` action emits the
-    ready signal.
-    """
-
-    def __init__(self, *args, **kwargs):
-        handler = EventHandler(
-            matcher=lambda event: isinstance(event, HalReady),
-            handle_once=True,
-            entities=[HalRTNodeAction(*args, **kwargs)],
-        )
-        super().__init__(event_handler=handler)
-
-
-class HalRTNodeAction(Node):
+class HalRTNode(HalOrderedAction, Node):
     """Action that loads a HAL RT component ROS node."""
 
     def __init__(
@@ -68,7 +45,9 @@ class HalRTNodeAction(Node):
         self.__component = component
         self.__component_path = path
 
-    def execute(self, context: LaunchContext) -> Optional[List[Action]]:
+    def execute_deferred(
+        self, context: LaunchContext
+    ) -> Optional[List[Action]]:
         """Execute the action."""
         if context.is_shutdown:
             # If shutdown starts before execution can start, don't
@@ -83,7 +62,7 @@ class HalRTNodeAction(Node):
         self._perform_substitutions(context)  # expand self.node_name
         ros_specific_arguments: Dict[str, Union[str, List[str]]] = {}
         if self.node_name is not None:
-            name_arg = f"__node:={self.node_name}"
+            name_arg = f"__node:={self._Node__node_name}"
             ros_specific_arguments["name"] = name_arg
         if self.expanded_node_namespace != "":
             ns_arg = f"__ns:={self.expanded_node_namespace}"
