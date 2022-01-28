@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Union
+from typing import List, Optional
 
 from launch import SomeSubstitutionsType, logging
 from launch.utilities import perform_substitutions
@@ -9,7 +9,7 @@ from launch_ros.substitutions import FindPackagePrefix
 from launch_ros.actions.node import Node
 
 from machinekit import rtapi
-from .hal_mgr import HalOrderedAction
+from .hal_ordered_action import HalOrderedAction
 
 
 class HalRTNode(HalOrderedAction, Node):
@@ -59,9 +59,7 @@ class HalRTNode(HalOrderedAction, Node):
         # Expand command substitutions
         cmd = [perform_substitutions(context, c) for c in self.cmd]
         comp_path = cmd[0]
-        self.__logger.info(
-            f"Executing HAL RT component {comp_path}"
-        )
+        self.__logger.info(f"Executing HAL RT component {comp_path}")
         self.comp_args = ",".join(cmd[1:])
         self.__logger.info(f"  args: {self.comp_args}")
 

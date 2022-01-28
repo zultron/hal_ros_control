@@ -1,15 +1,13 @@
-from typing import List, Dict, Optional, Union
+from typing import List, Optional
 
-from launch import SomeSubstitutionsType, logging
-from launch.utilities import perform_substitutions
+from launch import logging
 from launch.action import Action
 from launch.actions import Shutdown
 from launch.launch_context import LaunchContext
-from launch.substitutions import PathJoinSubstitution
-from launch_ros.substitutions import FindPackagePrefix
 from launch_ros.actions.node import Node
 
-from .hal_mgr import HalOrderedAction
+from .hal_ordered_action import HalOrderedAction
+
 
 class HalUserNode(HalOrderedAction, Node):
     """Action that loads a HAL "user" (non-RT) component ROS node."""
