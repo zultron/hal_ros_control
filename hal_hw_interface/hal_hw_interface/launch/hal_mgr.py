@@ -46,12 +46,15 @@ class HalOrderedAction(Action):
     the `execute_deferred()` method instead.
     """
 
+    # By default, cancel on Shutdown event
+    cancel_on_shutdown = True
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__logger = logging.get_logger(__name__)
         self.__canceled = False
 
-    def cancel(self, context):
+    def cancel(self, context, warn=True):
         """
         Cancel this Action.
 
@@ -60,8 +63,12 @@ class HalOrderedAction(Action):
         """
         self.__canceled = True
         if hasattr(self, "handler"):
-            self.__logger.warn(f"Canceling handler {self}")
-            context.unregister_event_handler(self.handler)
+            msg = f"Canceling handler {self}"
+            getattr(self.__logger, "warn" if warn else "debug")(msg)
+            try:
+                context.unregister_event_handler(self.handler)
+            except Exception:
+                pass
 
     def set_triggers(self, *, triggered_by, triggers, cancel_all):
         self.__logger.debug(
@@ -72,14 +79,14 @@ class HalOrderedAction(Action):
         self.cancel_all = cancel_all
 
     def execute_deferred(self, context):
-        raise NotImplementedError("Subclasses must define execute_deferred")
+        self.cancel(context, warn=False)
 
     def on_ready_event(self, context):
         try:
             self.execute_deferred(context)
         except Exception:
             self.__logger.error(f"{self}:  Canceling")
-            self.cancel_all()
+            self.cancel_all(context)
             raise
         if not self.triggers:
             return
@@ -117,14 +124,15 @@ class HalOrderedAction(Action):
         )
         context.register_event_handler(self.handler)
 
-        # Cancel execution at the 'shutdown' event so as to not hold
-        # up the launch process
-        context.register_event_handler(
-            EventHandler(
-                matcher=lambda event: isinstance(event, Shutdown),
-                entities=OpaqueFunction(function=self.cancel),
+        if self.cancel_on_shutdown:
+            # Cancel execution at the 'shutdown' event so as to not hold
+            # up the launch process
+            context.register_event_handler(
+                EventHandler(
+                    matcher=lambda event: isinstance(event, Shutdown),
+                    entities=OpaqueFunction(function=self.cancel),
+                )
             )
-        )
 
 
 class HalConfig(GroupAction):
@@ -201,9 +209,13 @@ class HalConfig(GroupAction):
             actions, scoped=scoped, launch_configurations=launch_configurations
         )
 
-    def cancel_all(self):
-        for action in self.actions():
-            action.cancel()
+    def cancel_all(self, context):
+        for action in self.actions[1:]:
+            action.cancel(context)
+        shutdown = Shutdown(reason="cancel_all()", due_to_sigint=False)
+        context.asyncio_loop.call_soon_threadsafe(
+            lambda: context.emit_event_sync(shutdown)
+        )
 
 
 class HalMgr(Node):

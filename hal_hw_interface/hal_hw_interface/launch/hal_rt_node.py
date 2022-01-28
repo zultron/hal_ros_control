@@ -15,6 +15,9 @@ from .hal_mgr import HalOrderedAction
 class HalRTNode(HalOrderedAction, Node):
     """Action that loads a HAL RT component ROS node."""
 
+    # HAL RT comps are shut down with HAL by hal_mgr
+    cancel_on_shutdown = False
+
     def __init__(
         self,
         *,
