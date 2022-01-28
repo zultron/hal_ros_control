@@ -78,12 +78,32 @@ class HalOrderedAction(Action):
         self.triggers = triggers
         self.cancel_all = cancel_all
 
+    def add_ros_specific_arguments(self, context):
+        # Run before execute_deferred(); launch params break w/o it.
+        # Copied from launch_ros.actions.node.Node.execute().
+        #
+        # Prepare the ros_specific_arguments list and add it to the
+        # context so that the LocalSubstitution placeholders added to
+        # the the cmd can be expanded using the contents.
+        self._perform_substitutions(context)  # expand self.node_name
+        ros_specific_arguments: Dict[str, Union[str, List[str]]] = {}
+        if self.node_name is not None:
+            name_arg = f"__node:={self._Node__node_name}"
+            ros_specific_arguments["name"] = name_arg
+        if self.expanded_node_namespace != "":
+            ns_arg = f"__ns:={self.expanded_node_namespace}"
+            ros_specific_arguments["ns"] = ns_arg
+        local_args = dict(ros_specific_arguments=ros_specific_arguments)
+        context.extend_locals(local_args)
+
     def execute_deferred(self, context):
-        self.cancel(context, warn=False)
+        raise NotImplementedError("Subclasses must implement execute_deferred")
 
     def on_ready_event(self, context):
         try:
+            self.add_ros_specific_arguments(context)
             self.execute_deferred(context)
+            self.cancel(context, warn=False)
         except Exception:
             self.__logger.error(f"{self}:  Canceling")
             self.cancel_all(context)
@@ -108,6 +128,11 @@ class HalOrderedAction(Action):
         assert hasattr(self, "triggered_by"), f"{self}: set_triggers() uncalled"
 
         self.__logger.info(f"HalOrderedAction.execute() called for {self.name}")
+
+        if context.is_shutdown:
+            # If shutdown starts before execution can start, don't
+            # start execution.
+            return None
 
         # No `triggered_by` name means ready NOW, just do it.
         if self.triggered_by is None:

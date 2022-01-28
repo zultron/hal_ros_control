@@ -35,8 +35,7 @@ class HalRTNode(HalOrderedAction, Node):
 
         if package is not None:
             pkg_prefix = FindPackagePrefix(package=package)
-            path_subs = [pkg_prefix, "lib", component]
-            path = PathJoinSubstitution(path_subs)
+            path = PathJoinSubstitution([pkg_prefix, "lib", component])
         else:
             path = component
 
@@ -57,32 +56,18 @@ class HalRTNode(HalOrderedAction, Node):
             # start execution.
             return None
 
-        # Next bit copied from launch_ros.actions.node.Node.execute()
-        #
-        # Prepare the ros_specific_arguments list and add it to the
-        # context so that the LocalSubstitution placeholders added to
-        # the the cmd can be expanded using the contents.
-        self._perform_substitutions(context)  # expand self.node_name
-        ros_specific_arguments: Dict[str, Union[str, List[str]]] = {}
-        if self.node_name is not None:
-            name_arg = f"__node:={self._Node__node_name}"
-            ros_specific_arguments["name"] = name_arg
-        if self.expanded_node_namespace != "":
-            ns_arg = f"__ns:={self.expanded_node_namespace}"
-            ros_specific_arguments["ns"] = ns_arg
-        local_args = dict(ros_specific_arguments=ros_specific_arguments)
-        context.extend_locals(local_args)
+        # Expand command substitutions
+        cmd = [perform_substitutions(context, c) for c in self.cmd]
+        comp_path = cmd[0]
+        self.__logger.info(
+            f"Executing HAL RT component {comp_path}"
+        )
+        self.comp_args = ",".join(cmd[1:])
+        self.__logger.info(f"  args: {self.comp_args}")
 
         # Be sure rtapi is initialized
         if not getattr(rtapi, "__rtapicmd") or not rtapi.__rtapicmd:
             rtapi.init_RTAPI()
 
-        # Expand substitutions
-        cmd = [perform_substitutions(context, c) for c in self.cmd]
-        comp_path = cmd[0]
-        self.__logger.info(f"Executing HAL component {comp_path}")
-        comp_args = ",".join(cmd[1:])
-        self.__logger.info(f"  args: {comp_args}")
-
         # Load the component
-        rtapi.loadrt(comp_path, ARGV=comp_args)
+        rtapi.loadrt(comp_path, ARGV=self.comp_args)
