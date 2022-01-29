@@ -17,6 +17,8 @@ class HalRTNode(HalOrderedAction, Node):
 
     # HAL RT comps are shut down with HAL by hal_mgr
     cancel_on_shutdown = False
+    # Process node args
+    run_add_ros_specific_arguments = True
 
     def __init__(
         self,
@@ -62,10 +64,6 @@ class HalRTNode(HalOrderedAction, Node):
         self.__logger.info(f"Executing HAL RT component {comp_path}")
         self.comp_args = ",".join(cmd[1:])
         self.__logger.info(f"  args: {self.comp_args}")
-
-        # Be sure rtapi is initialized
-        if not getattr(rtapi, "__rtapicmd") or not rtapi.__rtapicmd:
-            rtapi.init_RTAPI()
 
         # Load the component
         rtapi.loadrt(comp_path, ARGV=self.comp_args)

@@ -1,6 +1,6 @@
 import os
 import subprocess
-from machinekit import config, rtapi
+from machinekit import config
 from .ros_hal_component import RosHalComponent
 
 # ROS
@@ -27,7 +27,6 @@ class HalMgr(RosHalComponent):
         # super().setup_component()
         self.init_ready_topic_publisher()
         self.start_realtime()
-        self.load_hal_config()
 
     def init_ready_topic_publisher(self):
         """Set up "ready" status publisher."""
@@ -73,46 +72,6 @@ class HalMgr(RosHalComponent):
         self.logger.warn("Stopping realtime")
         subprocess.check_call("realtime stop", shell=True)
         self.logger.info("Realtime stopped")
-
-    def load_hal_config(self):
-        # Be sure rtapi is initialized (used in python HAL configs)
-        if not getattr(rtapi, "__rtapicmd") or not rtapi.__rtapicmd:
-            rtapi.init_RTAPI()
-
-        # Load the hal_hw_interface
-        hal_comp_dir = self.get_ros_param("hal_comp_dir")
-        assert hal_comp_dir is not None
-        hal_hw_interface_path = os.path.join(hal_comp_dir, "hal_control_node")
-        self.logger.info(f"hal_hw_interface_path:  {hal_hw_interface_path}")
-        self.logger.info(f"hal_hw_interface_args:  {str(self.argv)}")
-        rtapi.loadrt(hal_hw_interface_path, ARGV=",".join(self.argv))
-        self.logger.info("rosctl_intf comp loaded successfully")
-
-        # Get HAL config directory and filename list from ROS parameters
-        hal_file_dir = self.get_ros_param("hal_file_dir")
-        assert hal_file_dir is not None
-        hal_files = self.get_ros_param("hal_files")
-        assert isinstance(hal_files, list)
-
-        # Munge directory and filenames into paths and load HAL files
-        params = {
-            p: self.get_ros_param(p)
-            for p in self.node.get_parameters_by_prefix("")
-        }
-        params["argv"] = self.argv
-        for hal_file in hal_files:
-            hal_file_path = os.path.join(hal_file_dir, hal_file)
-            self.logger.info(f"Loading HAL file '{hal_file_path}'")
-            assert os.path.exists(hal_file_path)
-            if hal_file_path.endswith(".py"):
-                with open(hal_file_path, "r") as f:
-                    data = compile(f.read(), hal_file_path, "exec")
-                globals_ = dict(params=params)
-                exec(data, globals_)
-            else:
-                subprocess.check_call(["halcmd", "-f", hal_file_path])
-
-        self.logger.info("HAL configuration loaded")
 
     def update(self):
         # FIXME Watch realtime; shut down if it shuts down

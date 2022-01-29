@@ -6,6 +6,7 @@ from launch.actions import OpaqueFunction
 from launch.event_handler import EventHandler
 from launch.events import Shutdown
 
+from machinekit import rtapi
 from .hal_ready import HalReady
 
 
@@ -26,6 +27,8 @@ class HalOrderedAction(Action):
 
     # By default, cancel on Shutdown event
     cancel_on_shutdown = True
+    # By default, don't do node argument processing
+    run_add_ros_specific_arguments = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -34,7 +37,7 @@ class HalOrderedAction(Action):
 
     def cancel(self, context, warn=True):
         """
-        Cancel this Action.
+        Cancel this Action's handlers.
 
         This function is not thread-safe and should be called only from under
         another coroutine.
@@ -57,6 +60,9 @@ class HalOrderedAction(Action):
         self.cancel_all = cancel_all
 
     def add_ros_specific_arguments(self, context):
+        if not self.run_add_ros_specific_arguments:
+            return
+
         # Run before execute_deferred(); launch params break w/o it.
         # Copied from launch_ros.actions.node.Node.execute().
         #
@@ -74,34 +80,64 @@ class HalOrderedAction(Action):
         local_args = dict(ros_specific_arguments=ros_specific_arguments)
         context.extend_locals(local_args)
 
+    def init_rtapi(self):
+        # Be sure rtapi is initialized
+        if not getattr(rtapi, "__rtapicmd", False):
+            rtapi.init_RTAPI()
+        self.rtapi = rtapi
+
     def execute_deferred(self, context):
+        """Execute the action."""
         raise NotImplementedError("Subclasses must implement execute_deferred")
 
-    def on_ready_event(self, context):
-        try:
-            self.add_ros_specific_arguments(context)
-            self.execute_deferred(context)
-            self.cancel(context, warn=False)
-        except Exception:
-            self.__logger.error(f"{self}:  Canceling")
-            self.cancel_all(context)
-            raise
-        if not self.triggers:
-            return
+    def trigger_next(self, context):
+        """
+        Trigger the next action.
+
+        Emits the `HalReady` event to trigger the next action.
+        """
         context.asyncio_loop.call_soon_threadsafe(
             lambda: context.emit_event_sync(HalReady(self.triggers))
         )
 
+    def on_ready_event(self, context):
+        """
+        `HalReady` event handler for executing deferred action.
+
+        Do the following:
+
+        - Finalize command arguments
+        - Initialize the `rtapi` object
+        - Cancel the event handler
+        - Execute the deferred action
+        - Trigger the next action
+        """
+        self.add_ros_specific_arguments(context)
+        self.init_rtapi()
+        self.cancel(context, warn=False)
+        try:
+            self.execute_deferred(context)
+        except Exception as e:
+            self.__logger.error(f"{self} canceling on error:  '{e}'")
+            self.cancel_all(context)
+            raise
+        if not self.triggers:
+            return
+        return self.trigger_next(context)
+
     def matcher(self, event):
+        """Match `HalReady` event corresponding to this action."""
         return isinstance(event, HalReady) and event.name == self.triggered_by
 
     def execute(self, context):
         """
-        Execute the action.
+        Defer action execution.
 
-        This does the following:
-        - Create a task for the coroutine that waits until event or canceled
-        - Coroutine asynchronously fires event after event, if not canceled
+        - Create a task for the coroutine that waits until event or
+          canceled
+
+        - Coroutine asynchronously fires this action after previous
+          actions complete, unless canceled first.
         """
         assert hasattr(self, "triggered_by"), f"{self}: set_triggers() uncalled"
 
