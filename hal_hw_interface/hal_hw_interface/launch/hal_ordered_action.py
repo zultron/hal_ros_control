@@ -1,9 +1,12 @@
-import traceback
-from typing import List, Dict, Union
-
 from launch import logging
 from launch.action import Action
-from launch.actions import OpaqueFunction, EmitEvent, ExecuteProcess, LogInfo
+from launch.actions import (
+    OpaqueFunction,
+    EmitEvent,
+    ExecuteProcess,
+    LogInfo,
+    TimerAction,
+)
 from launch.event_handler import EventHandler
 from launch.events import Shutdown
 
@@ -88,10 +91,7 @@ class HalOrderedAction(Action):
 
     def shutdown_action(self, reason):
         loginfo = LogInfo(msg=f"Shutting down:  {reason}")
-        shutdown = Shutdown(
-            reason=reason,
-            due_to_sigint=False
-        )
+        shutdown = Shutdown(reason=reason, due_to_sigint=False)
         return [loginfo, EmitEvent(event=shutdown)]
 
     def on_ready_event(self, context):
@@ -170,6 +170,10 @@ class HalOrderedAction(Action):
         self.__execute = super().execute
         self.__context_locals = context.get_locals_as_dict()
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__} '{self.name}'>"
+
+
 class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     """
     Class for ordered HAL Nodes.
@@ -190,4 +194,75 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
 
     def __init__(self, *, name, **kwargs) -> None:
         # Pass name through as both hal_name and name; Node consumes one
+        kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
         super().__init__(hal_name=name, name=name, **kwargs)
+
+
+class HalAsyncReadyAction(HalOrderedAction):
+    """
+    HAL action with deferred HalReady event.
+
+    For actions that aren't ready immediately after
+    `execution_deferred()` returns, this action periodically checks
+    whether `is_ready() == True` before triggering next action.  If
+    still not ready before a timeout, it aborts launch.
+    """
+
+    # Ready check interval in seconds
+    ready_check_timeout = 0.1
+
+    def __init__(self, wait_timeout=5.0, **kwargs) -> None:
+        """
+        Construct a HalAsyncReadyAction action.
+
+        :param: wait_timeout After starting, if component does not
+            become ready within this number of seconds, abort the
+            launch.  Defaults to 5.0.
+        """
+        super().__init__(**kwargs)
+        self.__logger = logging.get_logger(__name__)
+        self.__wait_timeout = wait_timeout
+        self.__ready_checker = None  # ready check timer
+        self.__ready_timeout = None  # wait_timeout timer
+
+    def is_ready(self, context):
+        raise NotImplementedError("Subclasses must implement is_ready()")
+
+    def check_ready(self, context):
+        # Check if component is registered and become ready
+        if self.is_ready(context):
+            # Component ready; cancel timers and trigger next event
+            self.__ready_timeout.cancel()
+            self.__logger.info(f"HAL action {self.name} ready")
+            return [EmitEvent(event=HalReady(self.triggers))]
+        else:
+            # Not ready; schedule another check
+            return [
+                TimerAction(
+                    period=self.ready_check_timeout,
+                    actions=[OpaqueFunction(function=self.check_ready)],
+                ),
+            ]
+
+    def cancel(self, context, warn=True):
+        for t in [self.__ready_timeout, self.__ready_checker]:
+            if t is not None:
+                t.cancel()
+        super().cancel(context, warn=warn)
+
+    def ready_event(self):
+        if not self.triggers:
+            return []
+        # Periodic ready check timer:  trigger next action when comp is ready
+        self.__ready_checker = TimerAction(
+            period=self.ready_check_timeout,
+            actions=[OpaqueFunction(function=self.check_ready)],
+        )
+        # Wait timeout timer:  shut down launch
+        self.__ready_timeout = TimerAction(
+            period=self.__wait_timeout,
+            actions=self.shutdown_action(
+                f"HAL action {self.name} ready wait timed out"
+            ),
+        )
+        return [self.__ready_timeout, self.__ready_checker]

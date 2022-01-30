@@ -1,5 +1,3 @@
-import os
-
 from typing import List, Optional
 
 from launch import SomeSubstitutionsType, logging
