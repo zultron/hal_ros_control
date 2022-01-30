@@ -6,13 +6,12 @@ from launch.action import Action
 from launch.launch_context import LaunchContext
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackagePrefix
-from launch_ros.actions.node import Node
 
 from machinekit import rtapi
-from .hal_ordered_action import HalOrderedAction
+from .hal_ordered_action import HalOrderedNode
 
 
-class HalRTNode(HalOrderedAction, Node):
+class HalRTNode(HalOrderedNode):
     """Action that loads a HAL RT component ROS node."""
 
     # HAL RT comps are shut down with HAL by hal_mgr

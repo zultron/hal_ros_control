@@ -74,19 +74,10 @@ class HalConfig(GroupAction):
             action.set_triggers(
                 triggered_by=triggered_by,
                 triggers=triggers,
-                cancel_all=self.cancel_all,
             )
 
         # Create the group action
         actions.insert(0, hal_mgr_action)
         super().__init__(
             actions, scoped=scoped, launch_configurations=launch_configurations
-        )
-
-    def cancel_all(self, context):
-        for action in self.actions[1:]:
-            action.cancel(context)
-        shutdown = Shutdown(reason="cancel_all()", due_to_sigint=False)
-        context.asyncio_loop.call_soon_threadsafe(
-            lambda: context.emit_event_sync(shutdown)
         )
