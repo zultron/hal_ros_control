@@ -28,8 +28,6 @@ class HalOrderedAction(Action):
     the `execute_deferred()` method instead.
     """
 
-    # By default, don't do node argument processing
-    run_add_ros_specific_arguments = False
     # By default, don't pass `name` param to superclass __init__()
     pass_name = False
 
@@ -40,7 +38,7 @@ class HalOrderedAction(Action):
         super().__init__(**kwargs)
         self.__logger = logging.get_logger(__name__)
         self.__canceled = False
-        self.__name = name or getattr(self, "node_name", None)
+        self.__name = name
         assert self.__name
 
     @property
@@ -81,7 +79,6 @@ class HalOrderedAction(Action):
         self.__logger.info(f"Executing deferred action {self}")
         return self.__execute(context)
 
-    @property
     def ready_event(self):
         """Return `HalReady` event to trigger next Action."""
         if self.triggers:
@@ -123,7 +120,7 @@ class HalOrderedAction(Action):
             res = self.execute_deferred(context)
         except Exception as e:
             return self.shutdown_action(f"{self} shutdown on error:  '{e}'")
-        return (res or []) + self.ready_event
+        return (res or []) + self.ready_event()
 
     def matcher(self, event):
         """Match `HalReady` event corresponding to this action."""

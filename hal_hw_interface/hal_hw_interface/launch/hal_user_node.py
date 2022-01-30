@@ -23,8 +23,6 @@ class HalUserNode(HalOrderedNode):
     a timeout, it aborts launch.
     """
 
-    # Process node args
-    run_add_ros_specific_arguments = True
     # Don't automatically trigger when execute_deferred() returs
     auto_trigger = False
     # Ready check interval in seconds
@@ -84,7 +82,6 @@ class HalUserNode(HalOrderedNode):
                 t.cancel()
         super().cancel(context, warn=warn)
 
-    @property
     def ready_event(self):
         if not self.triggers:
             return []

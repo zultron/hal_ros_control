@@ -16,9 +16,6 @@ from .hal_ordered_action import HalOrderedNode
 class HalRTNode(HalOrderedNode):
     """Action that loads a HAL RT component ROS node."""
 
-    # Process node args
-    run_add_ros_specific_arguments = True
-
     def __init__(
         self,
         *,
