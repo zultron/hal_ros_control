@@ -40,9 +40,8 @@ class HalFiles(HalOrderedAction):
         Parameters are parsed and added as the global `parameters` to
         the HAL file python environment.
         """
-        super().__init__(**kwargs)
+        super().__init__(name=name or "hal_files", **kwargs)
         self.__logger = logging.get_logger(__name__)
-        self.__name = name or "hal_files"
         assert (
             hal_file_dir is not None
         ), "Missing 'hal_file_dir' launch argument"
@@ -56,10 +55,6 @@ class HalFiles(HalOrderedAction):
             # substitutions).
             normalized_params = normalize_parameters(parameters)
         self.__parameters = normalized_params or []
-
-    @property
-    def name(self):
-        return self.__name
 
     def parse_parameters(self, context):
         res = dict()

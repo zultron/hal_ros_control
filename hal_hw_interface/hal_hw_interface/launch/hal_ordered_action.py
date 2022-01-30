@@ -1,8 +1,9 @@
+import traceback
 from typing import List, Dict, Union
 
 from launch import logging
 from launch.action import Action
-from launch.actions import OpaqueFunction, EmitEvent, ExecuteProcess
+from launch.actions import OpaqueFunction, EmitEvent, ExecuteProcess, LogInfo
 from launch.event_handler import EventHandler
 from launch.events import Shutdown
 
@@ -27,15 +28,24 @@ class HalOrderedAction(Action):
     the `execute_deferred()` method instead.
     """
 
-    # By default, cancel on Shutdown event
-    cancel_on_shutdown = True
     # By default, don't do node argument processing
     run_add_ros_specific_arguments = False
+    # By default, don't pass `name` param to superclass __init__()
+    pass_name = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, name=None, hal_name=None, **kwargs):
+        name = name or hal_name
+        if self.pass_name:
+            kwargs["name"] = name
         super().__init__(**kwargs)
         self.__logger = logging.get_logger(__name__)
         self.__canceled = False
+        self.__name = name or getattr(self, "node_name", None)
+        assert self.__name
+
+    @property
+    def name(self):
+        return self.__name
 
     def cancel(self, context, warn=True):
         """
@@ -60,28 +70,6 @@ class HalOrderedAction(Action):
         self.triggered_by = triggered_by
         self.triggers = triggers
 
-    def add_ros_specific_arguments(self, context):
-        if not self.run_add_ros_specific_arguments:
-            return
-
-        # Run before execute_deferred(); launch params break w/o it.
-        # Cribbed from launch_ros.actions.node.Node.execute().
-        #
-        # Prepare the ros_specific_arguments list and add it to the
-        # context so that the LocalSubstitution placeholders added to
-        # the the cmd can be expanded using the contents.
-        self._perform_substitutions(context)  # expand self.node_name
-        ros_specific_arguments: Dict[str, Union[str, List[str]]] = {}
-        node_name = super(Node, self).__node_name
-        if node_name is not None:
-            name_arg = f"__node:={node_name}"
-            ros_specific_arguments["name"] = name_arg
-        if self.expanded_node_namespace != "":
-            ns_arg = f"__ns:={self.expanded_node_namespace}"
-            ros_specific_arguments["ns"] = ns_arg
-        local_args = dict(ros_specific_arguments=ros_specific_arguments)
-        context.extend_locals(local_args)
-
     def init_rtapi(self):
         # Be sure rtapi is initialized
         if not getattr(rtapi, "__rtapicmd", False):
@@ -90,6 +78,7 @@ class HalOrderedAction(Action):
 
     def execute_deferred(self, context):
         """Execute the action."""
+        self.__logger.info(f"Executing deferred action {self}")
         return self.__execute(context)
 
     @property
@@ -100,6 +89,14 @@ class HalOrderedAction(Action):
         else:
             return []
 
+    def shutdown_action(self, reason):
+        loginfo = LogInfo(msg=f"Shutting down:  {reason}")
+        shutdown = Shutdown(
+            reason=reason,
+            due_to_sigint=False
+        )
+        return [loginfo, EmitEvent(event=shutdown)]
+
     def on_ready_event(self, context):
         """
         `HalReady` event handler for executing deferred action.
@@ -109,19 +106,23 @@ class HalOrderedAction(Action):
         - Finalize command arguments
         - Initialize the `rtapi` object
         - Cancel the event handler
+        - Add back locals from original execute() call
         - Execute the deferred action
         - Trigger the next action
         """
+        if context.is_shutdown:
+            # If shutdown starts before execution can start, don't
+            # start execution.
+            self.__logger.warn(f"HAL action {self} canceled before execution")
+            return None
+
         self.init_rtapi()
         self.cancel(context, warn=False)
+        context.extend_locals(self.__context_locals)
         try:
             res = self.execute_deferred(context)
         except Exception as e:
-            shutdown = Shutdown(
-                reason=f"{self} canceling on error:  '{e}'",
-                due_to_sigint=False
-            )
-            return [shutdown]
+            return self.shutdown_action(f"{self} shutdown on error:  '{e}'")
         return (res or []) + self.ready_event
 
     def matcher(self, event):
@@ -139,8 +140,6 @@ class HalOrderedAction(Action):
           actions complete, unless canceled first.
         """
         assert hasattr(self, "triggered_by"), f"{self}: set_triggers() uncalled"
-
-        self.__logger.info(f"HalOrderedAction.execute() called for {self.name}")
 
         if context.is_shutdown:
             # If shutdown starts before execution can start, don't
@@ -161,18 +160,18 @@ class HalOrderedAction(Action):
         )
         context.register_event_handler(self.handler)
 
-        if self.cancel_on_shutdown:
-            # Cancel execution at the 'shutdown' event so as to not hold
-            # up the launch process
-            context.register_event_handler(
-                EventHandler(
-                    matcher=lambda event: isinstance(event, Shutdown),
-                    entities=OpaqueFunction(function=self.cancel),
-                )
+        # Cancel handlers at the 'shutdown' event so as to not hold up
+        # the launch process
+        context.register_event_handler(
+            EventHandler(
+                matcher=lambda event: isinstance(event, Shutdown),
+                entities=OpaqueFunction(function=self.cancel),
             )
+        )
 
-        # Save the execute() method we would have run for later
+        # Save the execute() method & context locals we would have run
         self.__execute = super().execute
+        self.__context_locals = context.get_locals_as_dict()
 
 class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     """
@@ -188,3 +187,10 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     method, which contains non-optional logic that uses munged/private
     parameters and uses the deprecated (??!?) `__node_name` attribute.
     """
+
+    # Node.__init__() uses `name`
+    pass_name = True
+
+    def __init__(self, *, name, **kwargs) -> None:
+        # Pass name through as both hal_name and name; Node consumes one
+        super().__init__(hal_name=name, name=name, **kwargs)

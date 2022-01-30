@@ -3,15 +3,14 @@ from machinekit import hal
 
 from launch import logging
 from launch.action import Action
-from launch.actions import Shutdown, TimerAction, OpaqueFunction, EmitEvent
+from launch.actions import TimerAction, OpaqueFunction, EmitEvent
 from launch.launch_context import LaunchContext
-from launch_ros.actions.node import Node
 
-from .hal_ordered_action import HalOrderedAction
 from .hal_ready import HalReady
+from .hal_ordered_action import HalOrderedNode
 
 
-class HalUserNode(HalOrderedAction, Node):
+class HalUserNode(HalOrderedNode):
     """
     Action that loads a HAL "user" (non-RT) component ROS node.
 
@@ -49,28 +48,22 @@ class HalUserNode(HalOrderedAction, Node):
             launch.  Defaults to 5.0.
         """
         self.__logger = logging.get_logger(__name__)
-        kwargs.setdefault("on_exit", Shutdown(reason="Exited"))
-        super().__init__(executable=executable, **kwargs)
+        kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
+        name = name or executable
+        super().__init__(name=name, executable=executable, **kwargs)
         self.__executable = executable
-        self.__name = name or executable
         self.__wait_timeout = wait_timeout
         self.__ready_checker = None  # ready check timer
         self.__ready_timeout = None  # wait_timeout timer
 
-    def execute_deferred(
-        self, context: LaunchContext
-    ) -> Optional[List[Action]]:
-        """Execute the action."""
-        super(Node, self).execute(context)
-
     def check_ready(self, context):
         # Check if component is registered and become ready
         ready = True
-        if self.__name not in hal.components:
-            self.__logger.debug("...HAL comp {self.__name} not yet registered")
+        if self.name not in hal.components:
+            self.__logger.debug("...HAL comp {self.name} not yet registered")
             ready = False
-        elif hal.components[self.__name].state != hal.COMP_READY:
-            self.__logger.debug("...HAL comp {self.__name} not yet ready")
+        elif hal.components[self.name].state != hal.COMP_READY:
+            self.__logger.debug("...HAL comp {self.name} not yet ready")
             ready = False
         if not ready:
             # Not ready; schedule another check
@@ -82,17 +75,19 @@ class HalUserNode(HalOrderedAction, Node):
             ]
         # Component ready; cancel timers and trigger next event
         self.__ready_timeout.cancel()
-        self.__logger.info(f"HAL component {self.__name} started successfully")
+        self.__logger.info(f"HAL component {self.name} started successfully")
         return [EmitEvent(event=HalReady(self.triggers))]
 
     def cancel(self, context, warn=True):
         for t in [self.__ready_timeout, self.__ready_checker]:
             if t is not None:
-                getattr(self, t).cancel()
+                t.cancel()
         super().cancel(context, warn=warn)
 
-    def trigger_next(self, context):
-        """Defer triggering next action until HAL component is ready."""
+    @property
+    def ready_event(self):
+        if not self.triggers:
+            return []
         # Periodic ready check timer:  trigger next action when comp is ready
         self.__ready_checker = TimerAction(
             period=self.ready_check_timeout,
@@ -101,9 +96,9 @@ class HalUserNode(HalOrderedAction, Node):
         # Wait timeout timer:  shut down launch
         self.__ready_timeout = TimerAction(
             period=self.__wait_timeout,
-            actions=[
-                Shutdown(reason=f"HAL component {self.__name} failed to start")
-            ],
+            actions=self.shutdown_action(
+                f"HAL component {self.name} startup timed out"
+            ),
         )
         return [self.__ready_timeout, self.__ready_checker]
 

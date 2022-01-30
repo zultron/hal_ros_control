@@ -1,5 +1,4 @@
 from launch.actions import GroupAction
-from launch.events import Shutdown
 
 from .hal_ordered_action import HalOrderedAction
 from .hal_mgr import HalMgr

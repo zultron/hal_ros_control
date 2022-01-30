@@ -1,3 +1,5 @@
+import os
+
 from typing import List, Optional
 
 from launch import SomeSubstitutionsType, logging
@@ -14,8 +16,6 @@ from .hal_ordered_action import HalOrderedNode
 class HalRTNode(HalOrderedNode):
     """Action that loads a HAL RT component ROS node."""
 
-    # HAL RT comps are shut down with HAL by hal_mgr
-    cancel_on_shutdown = False
     # Process node args
     run_add_ros_specific_arguments = True
 
@@ -41,8 +41,8 @@ class HalRTNode(HalOrderedNode):
             path = component
 
         # Pretend the component (a loadable plugin) is the full path
-        # of an executable to force this into the executable `Node`
-        # scheme.  It's forced, for sure.
+        # of an executable, thereby forced into the executable `Node`
+        # scheme.  "Forced," for sure.
         super().__init__(package=None, executable=path, **kwargs)
         self.__package = package
         self.__component = component
@@ -52,11 +52,6 @@ class HalRTNode(HalOrderedNode):
         self, context: LaunchContext
     ) -> Optional[List[Action]]:
         """Execute the action."""
-        if context.is_shutdown:
-            # If shutdown starts before execution can start, don't
-            # start execution.
-            return None
-
         # Expand command substitutions
         cmd = [perform_substitutions(context, c) for c in self.cmd]
         comp_path = cmd[0]
