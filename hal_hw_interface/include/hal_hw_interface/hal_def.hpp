@@ -34,5 +34,6 @@
 
 // Component name
 #define CNAME "hal_control_node"
+#define NNAME "controller_manager"
 
 #endif  // HAL_HW_INTERFACE__HAL_DEF_HPP_

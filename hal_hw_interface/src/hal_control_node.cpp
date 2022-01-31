@@ -82,14 +82,14 @@ void reset_controller_cb(void)
 
   // reset pin went high; reset command to feedback by stopping and starting
   // all active controllers during update()
-  HAL_ROS_INFO_NAMED(CNAME, "Reset pin high; reactivating controllers:");
+  HAL_ROS_INFO_NAMED(NNAME, "Reset pin high; reactivating controllers:");
   **RESET_PIN_PTR = 0;  // clear reset pin
   std::vector<std::string> start_controllers, stop_controllers;
   for (const auto& controller : CONTROLLER_MANAGER->get_loaded_controllers())
     if (controller.c->get_current_state().id() ==
         lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
     {
-      HAL_ROS_INFO_NAMED(CNAME, "  - %s", controller.info.name.c_str());
+      HAL_ROS_INFO_NAMED(NNAME, "  - %s", controller.info.name.c_str());
       start_controllers.push_back(controller.info.name);
       stop_controllers.push_back(controller.info.name);
     }
@@ -100,7 +100,7 @@ void reset_controller_cb(void)
       rclcpp::Duration((int32_t)(period >> 32),
                        (uint32_t)(period))  // timeout
   );
-  HAL_ROS_INFO_NAMED(CNAME, "  ...complete");
+  HAL_ROS_INFO_NAMED(NNAME, "  ...complete");
 }
 
 int rtapi_app_main(void)
@@ -109,12 +109,12 @@ int rtapi_app_main(void)
   int comp_id = hal_init(CNAME);
   if (comp_id < 0)
   {
-    HAL_ROS_ERR_NAMED(CNAME, "%s:  ERROR: Component creation ABORTED", CNAME);
+    HAL_ROS_ERR_NAMED(NNAME, "ERROR: Component '%s' creation ABORTED", CNAME);
     // return false; // FIXME
     return -1;
   }
 
-  HAL_ROS_INFO_NAMED(CNAME, "%s: Initialized HAL component %d", CNAME, comp_id);
+  HAL_ROS_INFO_NAMED(NNAME, "Initialized HAL component '%s' ID %d", CNAME, comp_id);
 
   // Apparently rcl searches through $LD_LIBRARY_PATH to find
   // librmw_fastrtps_cpp.so and related libs.  :P Since HAL's rtapi_app runs
@@ -132,12 +132,12 @@ int rtapi_app_main(void)
   int argc;
   for (argc = 0; ARGV[argc] != nullptr; argc++)
   {
-    HAL_ROS_DBG_NAMED(CNAME, "  ROS args:  %d = '%s'", argc, ARGV[argc]);
+    HAL_ROS_DBG_NAMED(NNAME, "  ROS args:  %d = '%s'", argc, ARGV[argc]);
   }
   rclcpp::init(argc, ARGV, init_opts);
 
   // Set up reset HAL pin
-  HAL_ROS_DBG_NAMED(CNAME, "Initializing %s.reset HAL pin", CNAME);
+  HAL_ROS_DBG_NAMED(NNAME, "Initializing %s.reset HAL pin", CNAME);
   RESET_PIN_PTR = reinterpret_cast<hal_bit_t**>(hal_malloc(sizeof(hal_bit_t*)));
   THROW_ON_NULLPTR(RESET_PIN_PTR);
   if (hal_pin_bit_newf(HAL_IO, RESET_PIN_PTR, comp_id, "%s.reset", CNAME))
@@ -146,7 +146,7 @@ int rtapi_app_main(void)
   THROW_ON_NULLPTR(*RESET_PIN_PTR);
 
   // Init controller manager and asynch executor
-  HAL_ROS_DBG_NAMED(CNAME, "Initializing node executor");
+  HAL_ROS_DBG_NAMED(NNAME, "Initializing node executor");
   // - Resource manager & hardware interface loaded here; HAL pins initialized
   EXECUTOR.reset(new rclcpp::executors::MultiThreadedExecutor());
   std::string manager_node_name = "controller_manager";
@@ -160,26 +160,26 @@ int rtapi_app_main(void)
   // Some race condition causes segfault; this seems to take care of it.
   // Related?
   // https://github.com/firesurfer/ros2_components/blob/master/src/ros2_components/ManagedNode.cpp#L200
-  HAL_ROS_DBG_NAMED(CNAME, "Sleeping to avoid segfault :P");
+  HAL_ROS_DBG_NAMED(NNAME, "Sleeping to avoid segfault :P");
   sleep(2);
 
   // ROS asynch executor thread pointer
-  HAL_ROS_DBG_NAMED(CNAME, "Starting executor");
+  HAL_ROS_DBG_NAMED(NNAME, "Starting executor");
   auto executor_cb = []() { EXECUTOR->spin(); };
   auto executor_thread = new std::thread(executor_cb);
   pthread_setname_np(executor_thread->native_handle(), "ros2_ctl_mgr");
 
   // Export the function & mark component ready
-  HAL_ROS_DBG_NAMED(CNAME, "Exporting HAL function; marking component ready");
+  HAL_ROS_DBG_NAMED(NNAME, "Exporting HAL function; marking component ready");
   if (hal_export_functf(funct, nullptr, 1, 0, comp_id, "%s.funct", CNAME) < 0)
   {
-    HAL_ROS_INFO_NAMED(CNAME, "ERROR: hal_export_functf failed");
+    HAL_ROS_INFO_NAMED(NNAME, "ERROR: hal_export_functf failed");
     hal_exit(comp_id);
     return -1;
   }
   hal_ready(comp_id);
 
-  HAL_ROS_INFO_NAMED(CNAME, "HAL component ready!");
+  HAL_ROS_INFO_NAMED(NNAME, "HAL component ready!");
 
   rclcpp::Logger l = CONTROLLER_MANAGER->get_logger();
   HAL_ROS_INFO(l, "HAL controller manager initializing");
