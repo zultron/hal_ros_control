@@ -3,15 +3,16 @@ from typing import List, Optional
 from launch import SomeSubstitutionsType, logging
 from launch.utilities import perform_substitutions
 from launch.action import Action
+from launch.actions import OpaqueFunction
 from launch.launch_context import LaunchContext
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackagePrefix
 
-from machinekit import rtapi
-from .hal_ordered_action import HalOrderedNode
+from machinekit import rtapi, hal
+from .hal_ordered_action import HalOrderedNode, HalAsyncReadyAction
 
 
-class HalRTNode(HalOrderedNode):
+class HalRTNode(HalOrderedNode, HalAsyncReadyAction):
     """Action that loads a HAL RT component ROS node."""
 
     def __init__(
@@ -43,16 +44,31 @@ class HalRTNode(HalOrderedNode):
         self.__component = component
         self.__component_path = path
 
-    def execute_deferred(
-        self, context: LaunchContext
-    ) -> Optional[List[Action]]:
-        """Execute the action."""
+    def is_ready(self, context):
+        # Check if component is registered and become ready
+        if self.name not in hal.components:
+            self.__logger.debug("...HAL comp {self.name} not yet registered")
+            return False
+        elif hal.components[self.name].state != hal.COMP_READY:
+            self.__logger.debug("...HAL comp {self.name} not yet ready")
+            return False
+        else:
+            return True
+
+    def load_comp(self, context):
         # Expand command substitutions
         cmd = [perform_substitutions(context, c) for c in self.cmd]
         comp_path = cmd[0]
         self.__logger.info(f"Executing HAL RT component {comp_path}")
         self.comp_args = ",".join(cmd[1:])
-        self.__logger.info(f"  args: {self.comp_args}")
+        self.__logger.info(f"  args: ARGV={self.comp_args}")
 
-        # Load the component
         rtapi.loadrt(comp_path, ARGV=self.comp_args)
+
+    def execute_deferred(
+        self, context: LaunchContext
+    ) -> Optional[List[Action]]:
+        """Execute the action."""
+
+        # Load the component in a coroutine
+        return [OpaqueFunction(function=self.load_comp)]
