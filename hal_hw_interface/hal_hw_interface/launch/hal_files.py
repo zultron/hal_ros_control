@@ -17,7 +17,7 @@ class HalFiles(HalOrderedAction):
     def __init__(
         self,
         *,
-        name=None,
+        hal_name="hal_files",
         hal_file_dir=None,
         hal_files=None,
         parameters=None,
@@ -40,7 +40,7 @@ class HalFiles(HalOrderedAction):
         Parameters are parsed and added as the global `parameters` to
         the HAL file python environment.
         """
-        super().__init__(name=name or "hal_files", **kwargs)
+        super().__init__(hal_name=hal_name, **kwargs)
         self.__logger = logging.get_logger(__name__)
         assert (
             hal_file_dir is not None

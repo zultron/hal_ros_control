@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 
 from launch import SomeSubstitutionsType, logging
@@ -20,6 +21,7 @@ class HalRTNode(HalOrderedNode, HalAsyncReadyAction):
         *,
         component: SomeSubstitutionsType,
         package: Optional[SomeSubstitutionsType] = None,
+        hal_name = None,
         **kwargs,
     ) -> None:
         """
@@ -37,22 +39,23 @@ class HalRTNode(HalOrderedNode, HalAsyncReadyAction):
             path = PathJoinSubstitution([pkg_prefix, "lib", component])
         else:
             path = component
+        hal_name = hal_name or os.path.basename(component)
 
         # Pretend the component (a loadable plugin) is the full path
         # of an executable, thereby forced into the executable `Node`
         # scheme.  "Forced," for sure.
-        super().__init__(package=None, executable=path, **kwargs)
+        super().__init__(hal_name=hal_name, package=None, executable=path, **kwargs)
         self.__package = package
         self.__component = component
         self.__component_path = path
 
     def is_ready(self, context):
         # Check if component is registered and become ready
-        if self.name not in hal.components:
-            self.__logger.debug("...HAL comp {self.name} not yet registered")
+        if self.hal_name not in hal.components:
+            self.__logger.debug("...HAL comp {self.hal_name} not yet registered")
             return False
-        elif hal.components[self.name].state != hal.COMP_READY:
-            self.__logger.debug("...HAL comp {self.name} not yet ready")
+        elif hal.components[self.hal_name].state != hal.COMP_READY:
+            self.__logger.debug("...HAL comp {self.hal_name} not yet ready")
             return False
         else:
             return True

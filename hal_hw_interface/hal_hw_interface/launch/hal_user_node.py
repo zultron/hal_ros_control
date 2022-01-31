@@ -1,3 +1,4 @@
+import os
 from machinekit import hal
 from launch import logging
 from .hal_ordered_action import HalOrderedNode, HalAsyncReadyAction
@@ -12,27 +13,27 @@ class HalUserNode(HalOrderedNode, HalAsyncReadyAction):
     ready.
     """
 
-    def __init__(self, *, executable, name=None, **kwargs) -> None:
+    def __init__(self, *, executable, hal_name=None, **kwargs) -> None:
         """
         Construct a HalUserNode action.
 
-        :param: name After starting, wait until the HAL component with
-            this name becomes ready.  Defaults to `executable`
-            argument.
+        :param: hal_name After starting, wait until the HAL component
+            named by `hal_name` comes ready; defaults to basename of
+            the `executable` param
         """
         self.__logger = logging.get_logger(__name__)
         kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
-        name = name or executable
-        super().__init__(name=name, executable=executable, **kwargs)
+        hal_name = hal_name or os.path.basename(executable)
+        super().__init__(hal_name=hal_name, executable=executable, **kwargs)
         self.__executable = executable
 
     def is_ready(self, context):
         # Check if component is registered and become ready
-        if self.name not in hal.components:
-            self.__logger.debug("...HAL comp {self.name} not yet registered")
+        if self.hal_name not in hal.components:
+            self.__logger.debug("...HAL comp {self.hal_name} not yet registered")
             return False
-        elif hal.components[self.name].state != hal.COMP_READY:
-            self.__logger.debug("...HAL comp {self.name} not yet ready")
+        elif hal.components[self.hal_name].state != hal.COMP_READY:
+            self.__logger.debug("...HAL comp {self.hal_name} not yet ready")
             return False
         else:
             return True

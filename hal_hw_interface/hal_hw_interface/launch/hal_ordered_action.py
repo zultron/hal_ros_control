@@ -34,20 +34,16 @@ class HalOrderedAction(Action):
     # By default, don't pass `name` param to superclass __init__()
     pass_name = False
 
-    def __init__(self, *, name=None, hal_name=None, **kwargs):
-        name = name or hal_name
-        print(f"HalOrderedAction.__init__: name={name}")
-        if self.pass_name:
-            kwargs["name"] = name
+    def __init__(self, *, hal_name=None, **kwargs):
         super().__init__(**kwargs)
         self.__logger = logging.get_logger(__name__)
         self.__canceled = False
-        self.__name = name
-        assert self.__name
+        self.__hal_name = hal_name
+        assert self.__hal_name
 
     @property
-    def name(self):
-        return self.__name
+    def hal_name(self):
+        return self.__hal_name
 
     def cancel(self, context, warn=True):
         """
@@ -172,7 +168,7 @@ class HalOrderedAction(Action):
         self.__context_locals = context.get_locals_as_dict()
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} '{self.name}'>"
+        return f"<{self.__class__.__name__} '{self.hal_name}'>"
 
 
 class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
@@ -193,11 +189,10 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     # Node.__init__() uses `name`
     pass_name = True
 
-    def __init__(self, *, name, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         print(f"HalOrderedNode.__init__: name={name}")
         kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
-        # Node.__init__ consumes `name`, so also pass through as `hal_name`
-        super().__init__(hal_name=name, name=name, **kwargs)
+        super().__init__(**kwargs)
 
 
 class HalAsyncReadyAction(HalOrderedAction):
@@ -236,7 +231,7 @@ class HalAsyncReadyAction(HalOrderedAction):
         if self.is_ready(context):
             # Component ready; cancel timers and trigger next event
             self.__ready_timeout.cancel()
-            self.__logger.info(f"HAL action {self.name} ready")
+            self.__logger.info(f"HAL action {self.hal_name} ready")
             return [EmitEvent(event=HalReady(self.triggers))]
         else:
             # Not ready; schedule another check
@@ -265,7 +260,7 @@ class HalAsyncReadyAction(HalOrderedAction):
         self.__ready_timeout = TimerAction(
             period=self.__wait_timeout,
             actions=self.shutdown_action(
-                f"HAL action {self.name} ready wait timed out"
+                f"HAL action {self.hal_name} ready wait timed out"
             ),
         )
         return [self.__ready_timeout, self.__ready_checker]

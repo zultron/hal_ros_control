@@ -52,7 +52,7 @@ class HalConfig(GroupAction):
 
         # Create the hal_mgr node action
         hal_mgr_kwargs.setdefault("name", "hal_mgr")
-        triggers = (actions[0].name if actions else None) or "action0"
+        triggers = (actions[0].hal_name if actions else None) or "action0"
         hal_mgr_kwargs.setdefault("triggers", triggers)
         hal_mgr_action = HalMgr(**hal_mgr_kwargs)
 
@@ -68,7 +68,7 @@ class HalConfig(GroupAction):
             if len(actions) - i == 1:  # Last action in list
                 triggers = None
             else:
-                triggers = actions[i + 1].name or f"action{i}"
+                triggers = actions[i + 1].hal_name or f"action{i}"
             # Set ordering for this action
             action.set_triggers(
                 triggered_by=triggered_by,
