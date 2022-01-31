@@ -11,7 +11,6 @@ from ament_index_python.packages import get_package_share_directory
 class HalMgr(RosHalComponent):
     compname = "hal_mgr"
     READY_TOPIC = "hal_mgr/ready"
-    shutdown_begun = False
     update_rate = 0.1  # sec
     default_node_kwargs = dict(
         allow_undeclared_parameters=True,
@@ -52,6 +51,7 @@ class HalMgr(RosHalComponent):
             "config",
             "fastrtps_disable_shm.xml",
         )
+        self.logger.info(f"Applying fastRTPS SHM hack:  {fastrtps_profiles}")
 
         self.logger.info(f"Starting hal_mgr; debug={d_out}/level={d_lev}")
         env = dict(
