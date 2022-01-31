@@ -121,16 +121,6 @@ int rtapi_app_main(void)
   // setuid, $LD_LIBRARY_PATH is ignored, so we have to artificially reconstruct
   // it.  Can't go through the ROS params, since no node yet, so fake it with
   // the single /opt/ros/$ROS_DISTRO/lib entry.
-  char *ld_library_path = getenv("LD_LIBRARY_PATH");
-  if (ld_library_path == nullptr)
-    HAL_ROS_INFO_NAMED(NNAME, "LD_LIBRARY_PATH unset");
-  else
-    HAL_ROS_INFO_NAMED(NNAME, "LD_LIBRARY_PATH '%s'", ld_library_path);
-  char *_ld_library_path = getenv("_LD_LIBRARY_PATH");
-  if (_ld_library_path == nullptr)
-    HAL_ROS_INFO_NAMED(NNAME, "_LD_LIBRARY_PATH unset");
-  else
-    HAL_ROS_INFO_NAMED(NNAME, "_LD_LIBRARY_PATH '%s'", _ld_library_path);
   char ld_library_path_buf[256];
   snprintf(ld_library_path_buf, sizeof(ld_library_path_buf), "/opt/ros/%s/lib",
            getenv("ROS_DISTRO"));

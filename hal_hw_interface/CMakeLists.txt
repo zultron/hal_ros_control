@@ -66,7 +66,6 @@ ament_target_dependencies(
 )
 
 
-#######################
 # Build HAL system hardware plugin
 add_library(
   hal_system_interface SHARED
@@ -94,38 +93,9 @@ pluginlib_export_plugin_description_file(
   hardware_interface hal_hw_interface.xml
 )
 
-#######################
-# HAL LD_LIBRARY_PATH hack
-
-# Build hal_env_hack
-add_library(
-  hal_env_hack MODULE
-  src/hal_env_hack.c
-)
-
-# Remove 'lib' prefix from comp name
-set_target_properties(hal_env_hack PROPERTIES PREFIX "")
-
-# Header files
-# - Specify additional header locations
-target_include_directories(
-  hal_env_hack
-  PRIVATE
-  ${HAL_INCLUDE_PATH}
-)
-
-ament_target_dependencies(
-  hal_env_hack
-  HAL
-)
-
-
-#######################
-# Install HAL comps
-
 # Install libraries
 install(
-  TARGETS hal_control_node hal_system_interface hal_env_hack
+  TARGETS hal_control_node hal_system_interface
   LIBRARY
   DESTINATION lib
 )

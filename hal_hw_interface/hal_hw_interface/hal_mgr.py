@@ -59,7 +59,6 @@ class HalMgr(RosHalComponent):
             SYSLOG_TO_STDERR=d_out,
             MACHINEKIT_INI=config.Config().MACHINEKIT_INI,
             FASTRTPS_DEFAULT_PROFILES_FILE=fastrtps_profiles,
-            _LD_LIBRARY_PATH=os.environ["LD_LIBRARY_PATH"],
             **os.environ,
         )
         subprocess.check_call(["realtime", "start"], env=env)
