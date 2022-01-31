@@ -190,7 +190,6 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     pass_name = True
 
     def __init__(self, **kwargs) -> None:
-        print(f"HalOrderedNode.__init__: name={name}")
         kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
         super().__init__(**kwargs)
 
@@ -217,7 +216,6 @@ class HalAsyncReadyAction(HalOrderedAction):
             launch.  Defaults to 5.0.
         """
         super().__init__(**kwargs)
-        print(f"HalAsyncReadyAction.__init__: name={kwargs.get('name', None)}")
         self.__logger = logging.get_logger(__name__)
         self.__wait_timeout = wait_timeout
         self.__ready_checker = None  # ready check timer
