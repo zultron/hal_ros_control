@@ -193,8 +193,8 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     pass_name = True
 
     def __init__(self, *, name, **kwargs) -> None:
-        # Pass name through as both hal_name and name; Node consumes one
         kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
+        # Node.__init__ consumes `name`, so also pass through as `hal_name`
         super().__init__(hal_name=name, name=name, **kwargs)
 
 
