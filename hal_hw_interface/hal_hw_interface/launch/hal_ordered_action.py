@@ -36,6 +36,7 @@ class HalOrderedAction(Action):
 
     def __init__(self, *, name=None, hal_name=None, **kwargs):
         name = name or hal_name
+        print(f"HalOrderedAction.__init__: name={name}")
         if self.pass_name:
             kwargs["name"] = name
         super().__init__(**kwargs)
@@ -193,6 +194,7 @@ class HalOrderedNode(Node, HalOrderedAction, ExecuteProcess):
     pass_name = True
 
     def __init__(self, *, name, **kwargs) -> None:
+        print(f"HalOrderedNode.__init__: name={name}")
         kwargs.setdefault("on_exit", self.shutdown_action("Exited"))
         # Node.__init__ consumes `name`, so also pass through as `hal_name`
         super().__init__(hal_name=name, name=name, **kwargs)
@@ -220,6 +222,7 @@ class HalAsyncReadyAction(HalOrderedAction):
             launch.  Defaults to 5.0.
         """
         super().__init__(**kwargs)
+        print(f"HalAsyncReadyAction.__init__: name={kwargs.get('name', None)}")
         self.__logger = logging.get_logger(__name__)
         self.__wait_timeout = wait_timeout
         self.__ready_checker = None  # ready check timer

@@ -30,6 +30,8 @@ class HalRTNode(HalOrderedNode, HalAsyncReadyAction):
         """
         self.__logger = logging.get_logger(__name__)
 
+        print("kwargs:", kwargs)
+        print(f"HalRTNode.__init__: name={kwargs.get('name', None)}")
         if package is not None:
             pkg_prefix = FindPackagePrefix(package=package)
             path = PathJoinSubstitution([pkg_prefix, "lib", component])
