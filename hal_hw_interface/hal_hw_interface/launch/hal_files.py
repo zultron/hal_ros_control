@@ -81,10 +81,11 @@ class HalFiles(HalOrderedAction):
 
         # Expand and check the hal file directory and hal file list
         hal_file_dir = context.perform_substitution(self.__hal_file_dir)
+        hal_files = [context.perform_substitution(i) for i in self.__hal_files]
         assert os.path.exists(
             hal_file_dir
-        ), f"HAL file path doesn't exist:  '{hal_file_dir}'"
-        for hal_file in self.__hal_files:
+        ), f"HAL file directory doesn't exist:  '{hal_file_dir}'"
+        for hal_file in hal_files:
             # Construct and check HAL file path
             hal_file_path = os.path.join(hal_file_dir, hal_file)
             assert os.path.exists(
