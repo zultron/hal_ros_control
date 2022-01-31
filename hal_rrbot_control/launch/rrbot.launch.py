@@ -267,7 +267,7 @@ def generate_launch_description():
         actions=[
             # Hardware interface
             HalRTNode(
-                name="controller_manager",
+                name="hal_control_node",
                 package="hal_hw_interface",
                 component="hal_control_node",
                 parameters=[
