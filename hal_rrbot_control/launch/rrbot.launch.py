@@ -19,7 +19,6 @@
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -27,14 +26,12 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
-    PythonExpression,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-from hal_hw_interface.launch import HalConfig, HalRTNode, HalUserNode, HalFiles
+from hal_hw_interface.launch import HalConfig, HalRTNode, HalFiles
+
 
 def generate_launch_description():
     # Declare arguments
@@ -120,13 +117,6 @@ def generate_launch_description():
     )
     declared_arguments.append(
         DeclareLaunchArgument(
-            "with_sensor",
-            default_value="false",
-            description="Enable integrated sensor.",
-        )
-    )
-    declared_arguments.append(
-        DeclareLaunchArgument(
             "use_fake_hardware",
             default_value="true",
             description=(
@@ -186,28 +176,6 @@ def generate_launch_description():
         )
     )
 
-    # Initialize Arguments
-    controllers_file = LaunchConfiguration("controllers_file")
-    description_package = LaunchConfiguration("description_package")
-    description_file = LaunchConfiguration("description_file")
-    prefix = LaunchConfiguration("prefix")
-    use_gazebo = LaunchConfiguration("use_gazebo")
-    use_sim = LaunchConfiguration("use_sim")
-    with_sensor = LaunchConfiguration("with_sensor")
-    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
-    position_only = LaunchConfiguration("position_only")
-    fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
-    slowdown = LaunchConfiguration("slowdown")
-    hardware_plugin = LaunchConfiguration("hardware_plugin")
-    robot_controller = LaunchConfiguration("robot_controller")
-    robot_controller_config = LaunchConfiguration("robot_controller_config")
-    start_rviz = LaunchConfiguration("start_rviz")
-    hal_file_dir = LaunchConfiguration("hal_file_dir")
-    hal_file = LaunchConfiguration("hal_file")
-    hal_debug_output = LaunchConfiguration("hal_debug_output")
-    hal_debug_level = LaunchConfiguration("hal_debug_level")
-
-
     # Get URDF via xacro
     robot_description_content = Command(
         [
@@ -215,41 +183,42 @@ def generate_launch_description():
             " ",
             PathJoinSubstitution(
                 [
-                    FindPackageShare(description_package),
+                    FindPackageShare(
+                        LaunchConfiguration("description_package")
+                    ),
                     "urdf",
-                    description_file,
+                    LaunchConfiguration("description_file"),
                 ]
             ),
             " ",
             "prefix:=",
-            prefix,
+            LaunchConfiguration("prefix"),
             " ",
             "use_gazebo:=",
-            use_gazebo,
+            LaunchConfiguration("use_gazebo"),
             " ",
             "use_sim:=",
-            use_sim,
+            LaunchConfiguration("use_sim"),
             " ",
             "use_fake_hardware:=",
-            use_fake_hardware,
+            LaunchConfiguration("use_fake_hardware"),
             " ",
             "with_sensor:=",
-            with_sensor,
+            LaunchConfiguration("with_sensor"),
             " ",
             "position_only:=",
-            position_only,
+            LaunchConfiguration("position_only"),
             " ",
             "fake_sensor_commands:=",
-            fake_sensor_commands,
+            LaunchConfiguration("fake_sensor_commands"),
             " ",
             "slowdown:=",
-            slowdown,
+            LaunchConfiguration("slowdown"),
             " ",
             "hardware_plugin:=",
-            hardware_plugin,
+            LaunchConfiguration("hardware_plugin"),
         ]
     )
-    robot_description = dict(robot_description=robot_description_content)
 
     # HAL configuration
     hal_hw_interface_launch = HalConfig(
@@ -270,8 +239,8 @@ def generate_launch_description():
                 package="hal_hw_interface",
                 component="hal_control_node",
                 parameters=[
-                    robot_description,
-                    robot_controller_config,
+                    dict(robot_description=robot_description_content),
+                    LaunchConfiguration("robot_controller_config"),
                 ],
                 log_cmd=True,
                 output="both",
@@ -281,11 +250,11 @@ def generate_launch_description():
             ),
             # HAL files
             HalFiles(
-                hal_file_dir=hal_file_dir,
-                hal_files=[hal_file],
+                hal_file_dir=LaunchConfiguration("hal_file_dir"),
+                hal_files=[LaunchConfiguration("hal_file")],
                 parameters=[
                     dict(
-                        use_sim=True,
+                        use_sim=LaunchConfiguration("use_sim"),
                     ),
                 ],
             ),
@@ -293,14 +262,18 @@ def generate_launch_description():
     )
 
     rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare(description_package), "config", "rrbot.rviz"]
+        [
+            FindPackageShare(LaunchConfiguration("description_package")),
+            "config",
+            "rrbot.rviz",
+        ]
     )
 
     robot_state_pub_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="both",
-        parameters=[robot_description],
+        parameters=[dict(robot_description=robot_description_content)],
     )
     rviz_node = Node(
         package="rviz2",
@@ -308,7 +281,7 @@ def generate_launch_description():
         name="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
-        condition=IfCondition(start_rviz),
+        condition=IfCondition(LaunchConfiguration("start_rviz")),
     )
 
     joint_state_broadcaster_spawner = Node(
@@ -324,7 +297,11 @@ def generate_launch_description():
     robot_controller_spawner = Node(
         package="controller_manager",
         executable="spawner.py",
-        arguments=[robot_controller, "-c", "/controller_manager"],
+        arguments=[
+            LaunchConfiguration("robot_controller"),
+            "-c",
+            "/controller_manager",
+        ],
     )
 
     nodes = [
@@ -335,6 +312,4 @@ def generate_launch_description():
         robot_controller_spawner,
     ]
 
-    return LaunchDescription(
-        declared_arguments + nodes
-    )
+    return LaunchDescription(declared_arguments + nodes)
