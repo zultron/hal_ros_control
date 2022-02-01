@@ -114,7 +114,8 @@ int rtapi_app_main(void)
     return -1;
   }
 
-  HAL_ROS_INFO_NAMED(NNAME, "Initialized HAL component '%s' ID %d", CNAME, comp_id);
+  HAL_ROS_INFO_NAMED(NNAME, "Initialized HAL component '%s' ID %d", CNAME,
+                     comp_id);
 
   // Apparently rcl searches through $LD_LIBRARY_PATH to find
   // librmw_fastrtps_cpp.so and related libs.  :P Since HAL's rtapi_app runs
