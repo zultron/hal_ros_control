@@ -53,8 +53,8 @@
 
 #define LOG_NAME (CNAME "_system_interface")
 
-using CallbackReturn =
-    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+using hardware_interface::CallbackReturn;
+using hardware_interface::return_type;
 
 typedef struct
 {
@@ -118,12 +118,12 @@ public:
   export_command_interfaces() override;
 
   // HAL_HW_INTERFACE_PUBLIC
-  // hardware_interface::return_type prepare_command_mode_switch(
+  // return_type prepare_command_mode_switch(
   //   const std::vector<std::string> & /*start_interfaces*/,
   //   const std::vector<std::string> & /*stop_interfaces*/) override;
 
   // HAL_HW_INTERFACE_PUBLIC
-  // hardware_interface::return_type perform_command_mode_switch(
+  // return_type perform_command_mode_switch(
   //   const std::vector<std::string> & /*start_interfaces*/,
   //   const std::vector<std::string> & /*stop_interfaces*/) override;
 
@@ -134,10 +134,10 @@ public:
   CallbackReturn on_deactivate();
 
   HAL_HW_INTERFACE_PUBLIC
-  hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+  return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
   HAL_HW_INTERFACE_PUBLIC
-  hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+  return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 protected:
   hal_float_t** alloc_and_init_hal_pin(const std::string /*joint_name*/,
