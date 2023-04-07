@@ -41,7 +41,8 @@ def generate_launch_description():
             "robot_controller_config",
             default_value=PathJoinSubstitution(
                 [
-                    FindPackageShare("ros2_control_demo_bringup"),
+                    FindPackageShare("ros2_control_demo_example_1"),
+                    "bringup",
                     "config",
                     "rrbot_controllers.yaml",
                 ]
