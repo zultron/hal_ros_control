@@ -14,7 +14,6 @@
 
   <depend>hal_hw_interface</depend>
   <depend>ros2_control_demo_example_1</depend>
-  <depend>rrbot_description</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
