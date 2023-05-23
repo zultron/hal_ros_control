@@ -163,6 +163,9 @@ class HalObjBase:
     def spin(self):
         rclpy.spin(self.node)
 
+    def spin_once(self, **kwargs):
+        rclpy.spin_once(self.node, **kwargs)
+
     def _run_shutdown_cbs(self):
         cb_map = self._cached_objs.setdefault("shutdown_cbs", {})
         if not cb_map:
