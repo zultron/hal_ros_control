@@ -9,6 +9,7 @@ import hal
 import attr
 from .hal_obj_base import HalObjBase
 from .exception import HalHWInterfaceException
+import traceback
 
 
 @attr.s
@@ -156,6 +157,7 @@ class RosHalComponent(HalObjBase, abc.ABC):
         except HalHWInterfaceException as e:
             self.logger.fatal(f"Exiting on HW interface exception:  {e}")
         except Exception as e:
+            self.logger.error(traceback.format_exc())
             self.logger.fatal(f"Exiting on exception:  {e}")
         except KeyboardInterrupt:
             self.logger.warn("Shutting down on keyboard interrupt")
