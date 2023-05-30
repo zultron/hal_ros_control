@@ -15,8 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - name: Install clang-format-10
-        run: sudo apt-get install clang-format-10
+      - name: Install clang-format
+        run: sudo apt-get install clang-format
       - name: Install black
         run: sudo -H pip3 install black
       - uses: pre-commit/action@v2.0.3
