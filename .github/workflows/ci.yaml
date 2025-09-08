@@ -86,7 +86,7 @@ jobs:
     - name: >
         Upload package artifacts ${{ matrix.vendor }}
         ${{ matrix.codename}}, ${{ matrix.architecture }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v5
       env:
         NAME_BASE: ${{ matrix.artifactNameBase }}
         GITHUB_SHA: ${{ github.sha }}
@@ -119,9 +119,11 @@ jobs:
         uses: zultron/machinekit_ci/actions/initDeps@v1
 
       - name: Download all built artifacts from GitHub storage
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v5
         with:
+          pattern: '*'
           path: ./artifacts
+          merge-multiple: true
 
       - name: Upload packages to Cloudsmith
         uses: zultron/machinekit_ci/actions/pushCloudsmith@v1
